@@ -11,12 +11,37 @@ import (
 )
 
 var (
-	flagInDir        = flag.String("inDir", "", "The .dat file containing blockchain input data")
-	flagStartBlock   = flag.Int64("startBlock", 0, "The block number to start from")
-	flagEndBlock     = flag.Int64("endBlock", 0, "The block number to end on")
-	flagPrintScripts = flag.Bool("scripts", false, "Print scripts (instead of general block/tx information)")
-	flagOutDir       = flag.String("outDir", "output", "Output directory")
+	flagInDir      = flag.String("inDir", "", "The .dat file containing blockchain input data")
+	flagStartBlock = flag.Int64("startBlock", 0, "The block number to start from")
+	flagEndBlock   = flag.Int64("endBlock", 0, "The block number to end on")
+	flagOutDir     = flag.String("outDir", "output", "Output directory")
 )
+
+type (
+	Cmd int
+)
+
+const (
+	CmdBlockData Cmd = iota
+	CmdScripts
+	CmdOpReturns
+)
+
+func getCmd(arg string) Cmd {
+	switch arg {
+	case "blockdata":
+		return CmdBlockData
+	case "scripts":
+		return CmdScripts
+	case "opreturns":
+		return CmdOpReturns
+
+	case "":
+		fallthrough
+	default:
+		panic("Must specify a command (blockdata, scripts, or opreturns)")
+	}
+}
 
 func main() {
 	flag.Parse()
@@ -26,6 +51,8 @@ func main() {
 	} else if *flagEndBlock == 0 {
 		panic("Must specify --endBlock param")
 	}
+
+	cmd := getCmd(flag.Arg(0))
 
 	startBlock := uint64(*flagStartBlock)
 	endBlock := uint64(*flagEndBlock)
@@ -57,10 +84,13 @@ func main() {
 			continue
 		}
 
-		if *flagPrintScripts {
+		switch cmd {
+		case CmdBlockData:
+			err = printBlockData(bl)
+		case CmdScripts:
 			err = printBlockScripts(bl)
-		} else {
-			err = printBlock(bl)
+		case CmdOpReturns:
+			err = printBlockScriptsOpReturns(bl)
 		}
 
 		if err != nil {
@@ -71,8 +101,6 @@ func main() {
 
 func printBlockScripts(bl *blkparser.Block) error {
 	dir := filepath.Join(".", *flagOutDir, "scripts")
-
-	fmt.Println(dir)
 
 	err := os.RemoveAll(dir)
 	if err != nil {
@@ -117,7 +145,49 @@ func printBlockScripts(bl *blkparser.Block) error {
 	return nil
 }
 
-func printBlock(bl *blkparser.Block) error {
+func printBlockScriptsOpReturns(bl *blkparser.Block) error {
+	dir := filepath.Join(".", *flagOutDir, "op-returns")
+
+	// err := os.RemoveAll(dir)
+	// if err != nil {
+	// 	return err
+	// }
+
+	for _, tx := range bl.Txs {
+		blockDir := filepath.Join(dir, bl.Hash)
+
+		err := os.MkdirAll(blockDir, 0777)
+		if err != nil {
+			return err
+		}
+
+		for txoutIdx, txout := range tx.TxOuts {
+			data, err := txout.Pkscript.GetOpReturnBytes()
+			if err != nil {
+				return err
+			} else if data == nil {
+				continue
+			}
+
+			f, err := os.Create(filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", tx.Hash, txoutIdx)))
+			if err != nil {
+				return err
+			}
+			// defer f.Close()
+
+			_, err = f.Write(data)
+			if err != nil {
+				f.Close()
+				return err
+			}
+			f.Close()
+		}
+	}
+
+	return nil
+}
+
+func printBlockData(bl *blkparser.Block) error {
 	// Basic block info
 	fmt.Printf("Block hash: %v\n", bl.Hash)
 	fmt.Printf("Block time: %v\n", bl.BlockTime)

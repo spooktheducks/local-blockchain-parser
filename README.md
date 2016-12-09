@@ -9,26 +9,26 @@ Faster alternative to using a local RPC implementation.
 
 - Install Go
 - Acquire some blockchain .dat files and put them in a subdirectory
+- Run `./init.sh` to set up the project (this will call `go get` for the script's dependencies)
 
-Assuming you create a directory called `data` inside this repo and place a single .dat file called `blk00689.dat` in it, you can run the command:
+Now, assuming you create a directory called `data` inside this repo and place a single .dat file called `blk00689.dat` in it, you can run one of the following commands.
 
-```sh
-$ go run main.go --inDir ./data --startBlock 689 --endBlock 689
-```
-
-#### --scripts flag
-
-If you want to print the contents of each transaction's script, run the command with the `--scripts` flag:
+To output basic block data, use the `blockdata` subcommand:
 
 ```sh
-$ go run main.go --inDir ./data --startBlock 689 --endBlock 689 --scripts
+$ go run main.go --inDir ./data --startBlock 689 --endBlock 689 blockdata
 ```
 
-and the `--outDir` flag:
+To output all transaction scripts as strings, use `scripts`:
 
 ```sh
-$ go run main.go --inDir ./data --startBlock 689 --endBlock 689 --scripts --outDir ./output
+$ go run main.go --inDir ./data --startBlock 689 --endBlock 689 scripts
 ```
 
-With this flag, .txt file output will be generated in ./output/scripts (or somewhere else, if you used the `--outDir` flag).
+To output the data associated with all `OP_RETURN` ops in the transaction scripts, use `opreturns`:
+
+```sh
+$ go run main.go --inDir ./data --startBlock 689 --endBlock 689 opreturns
+```
+
 

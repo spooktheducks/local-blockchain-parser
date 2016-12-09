@@ -2,8 +2,11 @@ package blkparser
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"errors"
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
+	"strings"
 )
 
 type Tx struct {
@@ -130,4 +133,23 @@ type (
 
 func (s Pkscript) DecodeToString() (string, error) {
 	return txscript.DisasmString(s)
+}
+
+func (s Pkscript) GetOpReturnBytes() ([]byte, error) {
+	scriptStr, err := s.DecodeToString()
+	if err != nil {
+		return nil, err
+	}
+
+	toks := strings.Split(scriptStr, " ")
+	for i := range toks {
+		if toks[i] == "OP_RETURN" {
+			if len(toks) >= i+2 {
+				return hex.DecodeString(toks[i+1])
+			} else {
+				return nil, errors.New("empty OP_RETURN data")
+			}
+		}
+	}
+	return nil, nil
 }
