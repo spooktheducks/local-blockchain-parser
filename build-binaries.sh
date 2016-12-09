@@ -1,12 +1,15 @@
 #!/bin/bash
 
-mkdir -p dist/windows dist/osx dist/linux
+mkdir -p dist
 
+echo Building Linux binary...
 GOOS=linux GOARCH=amd64 go build github.com/WikiLeaksFreedomForce/local-blockchain-parser
-mv local-blockchain-parser dist/linux
+mv local-blockchain-parser dist/local-blockchain-parser-linuxamd64
 
+echo Building OSX binary...
 GOOS=darwin GOARCH=amd64 go build github.com/WikiLeaksFreedomForce/local-blockchain-parser
-mv local-blockchain-parser dist/osx
+mv local-blockchain-parser dist/local-blockchain-parser-osxamd64
 
+echo Building Windows binary...
 GOOS=windows GOARCH=amd64 go build github.com/WikiLeaksFreedomForce/local-blockchain-parser
-mv local-blockchain-parser.exe dist/windows
+mv local-blockchain-parser.exe dist/local-blockchain-parser-windowsamd64.exe
