@@ -49,7 +49,7 @@ func ParseTxs(txsraw []byte) (txs []*Tx, err error) {
 }
 
 func NewTx(rawtx []byte) (tx *Tx, offset int) {
-	tx = new(Tx)
+	tx = &Tx{}
 	tx.Version = binary.LittleEndian.Uint32(rawtx[0:4])
 	offset = 4
 
@@ -84,7 +84,7 @@ func NewTx(rawtx []byte) (tx *Tx, offset int) {
 }
 
 func NewTxIn(txinraw []byte) (txin *TxIn, offset int) {
-	txin = new(TxIn)
+	txin = &TxIn{}
 	txin.InputHash = HashString(txinraw[0:32])
 	txin.InputVout = binary.LittleEndian.Uint32(txinraw[32:36])
 	offset = 36
@@ -101,7 +101,7 @@ func NewTxIn(txinraw []byte) (txin *TxIn, offset int) {
 }
 
 func NewTxOut(txoutraw []byte) (txout *TxOut, offset int) {
-	txout = new(TxOut)
+	txout = &TxOut{}
 	txout.Value = binary.LittleEndian.Uint64(txoutraw[0:8])
 	offset = 8
 

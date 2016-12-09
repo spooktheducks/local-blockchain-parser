@@ -8,8 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-searcher/lib/blkparser"
-	// "github.com/piotrnar/gocoin/lib/btc"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/lib/blkparser"
 	"github.com/btcsuite/btcd/txscript"
 )
 
@@ -60,7 +59,6 @@ func main() {
 			continue
 		}
 
-		// fmt.Printf("Current block height: %v\n", i)
 		if *flagPrintScripts {
 			err = printBlockScripts(bl)
 		} else {
