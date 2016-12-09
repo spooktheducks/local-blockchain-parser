@@ -11,9 +11,9 @@ Two options:
 
 ### Install a pre-built executable for your platform
 
-- **Windows:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.0/local-blockchain-parser-windowsamd64-0.1.0.exe>
-- **Linux:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.0/local-blockchain-parser-linuxamd64-0.1.0>
-- **OSX:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.0/local-blockchain-parser-osxamd64-0.1.0>
+- **Windows:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.1/local-blockchain-parser-windowsamd64.exe>
+- **Linux:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.1/local-blockchain-parser-linuxamd64>
+- **OSX:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.1/local-blockchain-parser-osxamd64>
 
 Either rename the executable to `local-blockchain-parser` or use the existing executable name for the commands listed below under "Usage".
 
