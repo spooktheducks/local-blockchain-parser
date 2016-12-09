@@ -35,14 +35,14 @@ Either rename the executable to `local-blockchain-parser` or use the existing ex
 
 ## Usage
 
-Acquire some blockchain `.dat` files and put them in a subdirectory of this repo.
+Acquire some blockchain `.dat` files: <https://mega.nz/#!Y0g3TZxZ!Dgx9bew6hx7gT2s1vE1SRFBjWETOh6HjccC9YL4DH5s>
 
-Assuming you create a directory called `data` inside this repo and place a single .dat file called `blk00689.dat` in it, you can run one of the following commands.
+Assuming you have a single .dat file called `blk00689.dat` in it, you can run one of the following commands:
 
 ### Viewing basic block data
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 blockdata
+$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 blockdata
 ```
 
 No file output currently — just logs block info to the console.
@@ -50,7 +50,7 @@ No file output currently — just logs block info to the console.
 ### Viewing transaction scripts as strings
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 scripts
+$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 scripts
 ```
 
 Script strings will be dumped as .txt files.
@@ -58,7 +58,7 @@ Script strings will be dumped as .txt files.
 ### Viewing `OP_RETURN` data
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 opreturns
+$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 opreturns
 ```
 
 Each time the script finds an `OP_RETURN`, it will create a .dat file containing the raw bytes from the associated data field.
