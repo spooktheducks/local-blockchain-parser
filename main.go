@@ -29,19 +29,19 @@ func main() {
 		panic("Must specify --endBlock param")
 	}
 
-	start := uint64(*flagStartBlock)
-	end := uint64(*flagEndBlock)
+	startBlock := uint64(*flagStartBlock)
+	endBlock := uint64(*flagEndBlock)
 
 	// Set real Bitcoin network
 	magic := [4]byte{0xF9, 0xBE, 0xB4, 0xD9}
 
 	// Specify blocks directory
-	blockDB, err := blkparser.NewBlockchain(*flagInDir, magic, uint32(start))
+	blockDB, err := blkparser.NewBlockchain(*flagInDir, magic, uint32(startBlock))
 	if err != nil {
 		panic("error opening file: " + err.Error())
 	}
 
-	for i := int(start); i < int(end)+1; i++ {
+	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		dat, err := blockDB.FetchNextBlock()
 		if dat == nil || err != nil {
 			fmt.Println("END of DB file")
@@ -55,7 +55,7 @@ func main() {
 		}
 
 		// Read block till we reach startBlock
-		if uint64(i) < start {
+		if uint64(i) < startBlock {
 			continue
 		}
 
