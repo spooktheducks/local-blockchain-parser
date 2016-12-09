@@ -1,7 +1,6 @@
 package main
 
 import (
-	// "bytes"
 	"encoding/hex"
 	"flag"
 	"fmt"
@@ -9,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/lib/blkparser"
-	"github.com/btcsuite/btcd/txscript"
 )
 
 var (
@@ -103,13 +101,13 @@ func printBlockScripts(bl *blkparser.Block) error {
 		}
 
 		for _, txout := range tx.TxOuts {
-			xs, err := txscript.DisasmString(txout.Pkscript)
+			scriptStr, err := txout.Pkscript.DecodeToString()
 			if err != nil {
 				return err
 			}
 
-			fmt.Println("        " + xs)
-			_, err = f.WriteString("  - " + xs + "\n")
+			fmt.Println("        " + scriptStr)
+			_, err = f.WriteString("  - " + scriptStr + "\n")
 			if err != nil {
 				return err
 			}

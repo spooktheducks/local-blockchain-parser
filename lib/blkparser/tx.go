@@ -27,7 +27,7 @@ type TxIn struct {
 type TxOut struct {
 	Addr     string
 	Value    uint64
-	Pkscript []byte
+	Pkscript Pkscript
 }
 
 func ParseTxs(txsraw []byte) (txs []*Tx, err error) {
@@ -122,4 +122,12 @@ func NewTxOut(txoutraw []byte) (txout *TxOut, offset int) {
 	}
 
 	return
+}
+
+type (
+	Pkscript []byte
+)
+
+func (s Pkscript) DecodeToString() (string, error) {
+	return txscript.DisasmString(s)
 }

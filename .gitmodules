@@ -1,3 +1,0 @@
-[submodule "vendor/github.com/btcsuite/btcd"]
-	path = vendor/github.com/btcsuite/btcd
-	url = http://github.com/btcsuite/btcd
