@@ -14,30 +14,30 @@ import (
 )
 
 var (
-	inFile           = flag.String("infile", "", "The .dat file containing blockchain input data")
-	startBlock       = flag.Int64("startBlock", 0, "The block number to start from")
-	endBlock         = flag.Int64("endBlock", 0, "The block number to end on")
+	flagInDir        = flag.String("inDir", "", "The .dat file containing blockchain input data")
+	flagStartBlock   = flag.Int64("startBlock", 0, "The block number to start from")
+	flagEndBlock     = flag.Int64("endBlock", 0, "The block number to end on")
 	flagPrintScripts = flag.Bool("scripts", false, "Print scripts (instead of general block/tx information)")
-	outDir           = flag.String("outDir", "output", "Output directory")
+	flagOutDir       = flag.String("outDir", "output", "Output directory")
 )
 
 func main() {
 	flag.Parse()
 
-	if *inFile == "" {
+	if *flagInDir == "" {
 		panic("Missing --infile param")
-	} else if *endBlock == 0 {
+	} else if *flagEndBlock == 0 {
 		panic("Must specify --endBlock param")
 	}
 
-	start := uint64(*startBlock)
-	end := uint64(*endBlock)
+	start := uint64(*flagStartBlock)
+	end := uint64(*flagEndBlock)
 
 	// Set real Bitcoin network
 	magic := [4]byte{0xF9, 0xBE, 0xB4, 0xD9}
 
 	// Specify blocks directory
-	blockDB, err := blkparser.NewBlockchain(*inFile, magic, uint32(start))
+	blockDB, err := blkparser.NewBlockchain(*flagInDir, magic, uint32(start))
 	if err != nil {
 		panic("error opening file: " + err.Error())
 	}
@@ -74,7 +74,7 @@ func main() {
 }
 
 func printBlockScripts(bl *blkparser.Block) error {
-	dir := filepath.Join(".", *outDir, "scripts")
+	dir := filepath.Join(".", *flagOutDir, "scripts")
 
 	fmt.Println(dir)
 
