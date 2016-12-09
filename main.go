@@ -1,17 +1,24 @@
 package main
 
 import (
+	// "bytes"
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-searcher/lib/blkparser"
+	// "github.com/piotrnar/gocoin/lib/btc"
+	"github.com/btcsuite/btcd/txscript"
 )
 
 var (
-	inFile     = flag.String("infile", "", "The .dat file containing blockchain input data")
-	startBlock = flag.Int64("startBlock", 0, "The block number to start from")
-	endBlock   = flag.Int64("endBlock", 0, "The block number to end on")
+	inFile           = flag.String("infile", "", "The .dat file containing blockchain input data")
+	startBlock       = flag.Int64("startBlock", 0, "The block number to start from")
+	endBlock         = flag.Int64("endBlock", 0, "The block number to end on")
+	flagPrintScripts = flag.Bool("scripts", false, "Print scripts (instead of general block/tx information)")
+	outDir           = flag.String("outDir", "output", "Output directory")
 )
 
 func main() {
@@ -53,12 +60,68 @@ func main() {
 			continue
 		}
 
-		fmt.Printf("Current block height: %v\n", i)
-		printBlock(bl)
+		// fmt.Printf("Current block height: %v\n", i)
+		if *flagPrintScripts {
+			err = printBlockScripts(bl)
+		} else {
+			err = printBlock(bl)
+		}
+
+		if err != nil {
+			panic(err)
+		}
 	}
 }
 
-func printBlock(bl *blkparser.Block) {
+func printBlockScripts(bl *blkparser.Block) error {
+	dir := filepath.Join(".", *outDir, "scripts")
+
+	fmt.Println(dir)
+
+	err := os.RemoveAll(dir)
+	if err != nil {
+		return err
+	}
+
+	err = os.MkdirAll(dir, 0777)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create(filepath.Join(dir, bl.Hash+".txt"))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	fmt.Println("===== BLOCK " + bl.Hash + " =====")
+	f.WriteString("[BLOCK " + bl.Hash + "]\n")
+
+	for _, tx := range bl.Txs {
+		fmt.Println("-   TX " + tx.Hash)
+		_, err := f.WriteString("TX: " + tx.Hash + "\n")
+		if err != nil {
+			return err
+		}
+
+		for _, txout := range tx.TxOuts {
+			xs, err := txscript.DisasmString(txout.Pkscript)
+			if err != nil {
+				return err
+			}
+
+			fmt.Println("        " + xs)
+			_, err = f.WriteString("  - " + xs + "\n")
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func printBlock(bl *blkparser.Block) error {
 	// Basic block info
 	fmt.Printf("Block hash: %v\n", bl.Hash)
 	fmt.Printf("Block time: %v\n", bl.BlockTime)
@@ -98,4 +161,6 @@ func printBlock(bl *blkparser.Block) {
 			fmt.Printf("TxOut address: %v\n", txout.Addr)
 		}
 	}
+
+	return nil
 }

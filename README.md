@@ -16,3 +16,9 @@ Assuming you create a directory called `data` inside this repo and place a singl
 $ go run main.go --infile ./data --startBlock 689 --endBlock 689
 ```
 
+If you want to print the contents of each transaction's script, run the command with the `--scripts` flag:
+
+```sh
+$ go run main.go --infile ./data --startBlock 689 --endBlock 689 --scripts
+```
+
