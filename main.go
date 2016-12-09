@@ -24,7 +24,7 @@ func main() {
 	flag.Parse()
 
 	if *flagInDir == "" {
-		panic("Missing --infile param")
+		panic("Missing --inDir param")
 	} else if *flagEndBlock == 0 {
 		panic("Must specify --endBlock param")
 	}
