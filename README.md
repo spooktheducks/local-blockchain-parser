@@ -13,22 +13,31 @@ Faster alternative to using a local RPC implementation.
 
 Now, assuming you create a directory called `data` inside this repo and place a single .dat file called `blk00689.dat` in it, you can run one of the following commands.
 
-To output basic block data, use the `blockdata` subcommand:
+### Viewing basic block data
 
 ```sh
 $ go run main.go --inDir ./data --startBlock 689 --endBlock 689 blockdata
 ```
 
-To output all transaction scripts as strings, use `scripts`:
+No file output currently — just logs block info to the console.
+
+### Viewing transaction scripts as strings
 
 ```sh
 $ go run main.go --inDir ./data --startBlock 689 --endBlock 689 scripts
 ```
 
-To output the data associated with all `OP_RETURN` ops in the transaction scripts, use `opreturns`:
+Script strings will be dumped as .txt files.
+
+### Viewing `OP_RETURN` data
 
 ```sh
 $ go run main.go --inDir ./data --startBlock 689 --endBlock 689 opreturns
 ```
 
+Each time the script finds an `OP_RETURN`, it will create a .dat file containing the raw bytes from the associated data field.
+
+## Output
+
+Output files will be located in the `output` subdirectory (unless you specified an `--outDir` param).
 
