@@ -75,7 +75,7 @@ func main() {
 		bl, err := blkparser.NewBlock(dat[:])
 
 		if err != nil {
-			println("Block inconsistent:", err.Error())
+			fmt.Println("Block inconsistent:", err.Error())
 			break
 		}
 
