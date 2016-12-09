@@ -1,5 +1,5 @@
 
-# local-blockchain-searcher
+# local-blockchain-parser
 
 Parses blockchain .dat files and spits out the information contained in them.
 
