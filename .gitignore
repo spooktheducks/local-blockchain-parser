@@ -2,4 +2,4 @@
 data/*
 output/*
 dist/*
-./local-blockchain-parser
+local-blockchain-parser
