@@ -81,7 +81,8 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		return err
 	}
 
-	allData, err := os.Create(filepath.Join(dir, "all-blocks.csv"))
+	allDataFilepath := filepath.Join(dir, "all-blocks.csv")
+	allData, err := os.Create(allDataFilepath)
 	if err != nil {
 		return err
 	}
@@ -171,6 +172,8 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		}
 	}
 
+	fmt.Println(allDataFilepath, "written.")
+
 	return nil
 }
 
@@ -202,7 +205,6 @@ func searchDataForFileHeaders(data []byte) []fileHeaderDefinition {
 	matches := []fileHeaderDefinition{}
 	for _, header := range fileHeaders {
 		if bytes.Contains(data, header.headerData) {
-			fmt.Println("possible match (" + header.filetype + ")")
 			matches = append(matches, header)
 		}
 	}
