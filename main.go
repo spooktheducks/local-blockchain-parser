@@ -2,11 +2,8 @@ package main
 
 import (
 	"flag"
-	"fmt"
-	"path/filepath"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
 )
 
 var (
@@ -63,29 +60,19 @@ func main() {
 			panic(err)
 		}
 		return
-	}
 
-	for i := int(startBlock); i < int(endBlock)+1; i++ {
-		filename := fmt.Sprintf("blk%05d.dat", i)
-
-		blocks, err := utils.LoadBlockFile(filepath.Join(*flagInDir, filename))
+	case CmdScripts:
+		err := cmds.PrintBlockScripts(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
+		return
 
-		for _, bl := range blocks {
-			var err error
-
-			switch cmd {
-			case CmdBlockData:
-				err = cmds.PrintBlockData(bl)
-			case CmdScripts:
-				err = cmds.PrintBlockScripts(bl, *flagOutDir)
-			}
-
-			if err != nil {
-				panic(err)
-			}
+	case CmdBlockData:
+		err := cmds.PrintBlockData(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
 		}
+		return
 	}
 }
