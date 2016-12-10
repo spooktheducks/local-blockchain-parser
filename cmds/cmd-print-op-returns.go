@@ -134,7 +134,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 
 			allTxOutData := []byte{}
 
-			for /*txoutIdx*/ _, txout := range tx.MsgTx().TxOut {
+			for _, txout := range tx.MsgTx().TxOut {
 				scriptStr, err := txscript.DisasmString(txout.PkScript)
 				if err != nil {
 					if err.Error() == "execute past end of script" {
@@ -145,12 +145,12 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 					}
 				}
 
-				data, err := getOpReturnBytes(scriptStr)
+				data, err := getNonOPBytes(scriptStr)
 				if err != nil {
 					if err.Error() == "encoding/hex: odd length hex string" {
 						continue
 					} else {
-						chErr <- fmt.Errorf("error in getOpReturnBytes: %v", err)
+						chErr <- fmt.Errorf("error in getNonOPBytes: %v", err)
 						return
 					}
 				} else if data == nil {
@@ -159,17 +159,10 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 
 				allTxOutData = append(allTxOutData, data...)
 
-				// txoutFilename := filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", txHash, txoutIdx))
-				// err = createAndWriteFile(txoutFilename, data)
-				// if err != nil {
-				// 	chErr <- err
-				// 	return
-				// }
-
 				chCSVData <- csvLine{blockHash, txHash, data}
 			}
 
-			headerMatches, footerMatches := searchDataForFileHeaders(allTxOutData)
+			headerMatches, footerMatches := searchDataForKnownFileBits(allTxOutData)
 			if len(headerMatches) > 0 {
 				for _, match := range headerMatches {
 					fmt.Printf("- file header match (type: %v) (block hash: %v) (tx hash: %v)\n", match.filetype, blockHash, txHash)
@@ -251,7 +244,7 @@ var fileFooters = []fileHeaderDefinition{
 	{"7zip", []byte{0x00, 0x00, 0x00, 0x17, 0x06}}, // verified with cablegate
 }
 
-func searchDataForFileHeaders(data []byte) ([]fileHeaderDefinition, []fileHeaderDefinition) {
+func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHeaderDefinition) {
 	if data == nil {
 		return []fileHeaderDefinition{}, []fileHeaderDefinition{}
 	}
@@ -273,7 +266,7 @@ func searchDataForFileHeaders(data []byte) ([]fileHeaderDefinition, []fileHeader
 	return headerMatches, footerMatches
 }
 
-func getOpReturnBytes(scriptStr string) ([]byte, error) {
+func getNonOPBytes(scriptStr string) ([]byte, error) {
 	toks := strings.Split(scriptStr, " ")
 
 	// for i := range toks {
