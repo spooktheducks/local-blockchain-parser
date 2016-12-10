@@ -89,12 +89,6 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		}
 
 		for _, bl := range blocks {
-
-			// err := os.RemoveAll(dir)
-			// if err != nil {
-			//  return err
-			// }
-
 			blockHash := bl.Hash().String()
 
 			blockDir := filepath.Join(dir, blockHash)
