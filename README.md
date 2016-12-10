@@ -46,7 +46,7 @@ Assuming you have a single .dat file called `blk00689.dat` in it, you can run on
 This is based on the encoding/decoding method from the satoshi python scripts used for cablegate.
 
 ```sh
-$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 opreturns
+$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 123 --endBlock 456 opreturns
 ```
 
 Each time the program finds non-`OP_` tokens in the TxOut scripts, it will create a .dat file containing the raw bytes from the associated data field (the data is concatenated across all TxOuts for the given transaction).
