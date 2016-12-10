@@ -56,13 +56,17 @@ $ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 
 
 Script strings will be dumped as .txt files.
 
-### Viewing `OP_RETURN` data
+### Viewing satoshi-downloader encoded data
+
+This is based on the encoding/decoding method from the satoshi python scripts used for cablegate.
 
 ```sh
 $ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 opreturns
 ```
 
-Each time the script finds an `OP_RETURN`, it will create a .dat file containing the raw bytes from the associated data field.
+Each time the script finds non-`OP_` tokens in the TxOut scripts, it will create a .dat file containing the raw bytes from the associated data field (the data is concatenated across all TxOuts for the given transaction).
+
+If you run `./scan-opreturn-data.sh` in this repo after running this command, it will try to identify all valid files among the output.
 
 ## Output
 
