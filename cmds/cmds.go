@@ -10,6 +10,8 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
+
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
 )
 
 func PrintBlockScripts(bl *btcutil.Block, outDir string) error {
@@ -60,65 +62,102 @@ func PrintBlockScripts(bl *btcutil.Block, outDir string) error {
 	return nil
 }
 
-func PrintBlockScriptsOpReturns(bl *btcutil.Block, outDir string) error {
+func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir string) error {
 	dir := filepath.Join(".", outDir, "op-returns")
 
-	// err := os.RemoveAll(dir)
-	// if err != nil {
-	//  return err
-	// }
-
-	blockDir := filepath.Join(dir, bl.Hash().String())
-
-	err := os.MkdirAll(blockDir, 0777)
+	err := os.MkdirAll(dir, 0777)
 	if err != nil {
 		return err
 	}
 
-	for _, tx := range bl.Transactions() {
-		// for _, txin := range tx.TxIns {
-		//  data, err := blkparser.Pkscript(txin.ScriptSig).DecodeToString()
-		//  if err != nil {
-		//      return err
-		//  }
-		//  fmt.Println(data)
-		// }
+	allData, err := os.Create(filepath.Join(dir, "all-blocks.csv"))
+	if err != nil {
+		return err
+	}
 
-		for txoutIdx, txout := range tx.MsgTx().TxOut {
-			scriptStr, err := txscript.DisasmString(txout.PkScript)
-			if err != nil {
-				if err.Error() == "execute past end of script" {
-					continue
-				} else {
-					return fmt.Errorf("error in txscript.DisasmString: %v", err)
-				}
-			}
+	_, err = allData.WriteString(fmt.Sprintf("blockHash,txHash,scriptData\n"))
+	if err != nil {
+		return err
+	}
 
-			data, err := getOpReturnBytes(scriptStr)
-			if err != nil {
-				if err.Error() == "encoding/hex: odd length hex string" {
-					continue
-				} else {
-					return fmt.Errorf("error in getOpReturnBytes: %v", err)
-				}
-			} else if data == nil {
-				continue
-			}
+	for i := int(startBlock); i < int(endBlock)+1; i++ {
+		filename := fmt.Sprintf("blk%05d.dat", i)
 
-			f, err := os.Create(filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", tx.Hash().String(), txoutIdx)))
+		blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
+		if err != nil {
+			panic(err)
+		}
+
+		for _, bl := range blocks {
+
+			// err := os.RemoveAll(dir)
+			// if err != nil {
+			//  return err
+			// }
+
+			blockHash := bl.Hash().String()
+
+			blockDir := filepath.Join(dir, blockHash)
+
+			err = os.MkdirAll(blockDir, 0777)
 			if err != nil {
 				return err
 			}
-			// defer f.Close()
 
-			_, err = f.Write(data)
-			if err != nil {
-				f.Close()
-				return err
+			for _, tx := range bl.Transactions() {
+				// for _, txin := range tx.TxIns {
+				//  data, err := blkparser.Pkscript(txin.ScriptSig).DecodeToString()
+				//  if err != nil {
+				//      return err
+				//  }
+				//  fmt.Println(data)
+				// }
+
+				for txoutIdx, txout := range tx.MsgTx().TxOut {
+					scriptStr, err := txscript.DisasmString(txout.PkScript)
+					if err != nil {
+						if err.Error() == "execute past end of script" {
+							continue
+						} else {
+							return fmt.Errorf("error in txscript.DisasmString: %v", err)
+						}
+					}
+
+					data, err := getOpReturnBytes(scriptStr)
+					if err != nil {
+						if err.Error() == "encoding/hex: odd length hex string" {
+							continue
+						} else {
+							return fmt.Errorf("error in getOpReturnBytes: %v", err)
+						}
+					} else if data == nil {
+						continue
+					}
+
+					txHash := tx.Hash().String()
+					f, err := os.Create(filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", txHash, txoutIdx)))
+					if err != nil {
+						return err
+					}
+					// defer f.Close()
+
+					_, err = f.Write(data)
+					if err != nil {
+						f.Close()
+						return err
+					}
+					f.Close()
+
+					_, err = allData.WriteString(fmt.Sprintf("%s,%s,%s\n", blockHash, txHash, string(data)))
+					if err != nil {
+						return err
+					}
+				}
 			}
-			f.Close()
 		}
 	}
+
+	allData.Close()
 
 	return nil
 }

@@ -56,6 +56,15 @@ func main() {
 	startBlock := uint64(*flagStartBlock)
 	endBlock := uint64(*flagEndBlock)
 
+	switch cmd {
+	case CmdOpReturns:
+		err := cmds.PrintBlockScriptsOpReturns(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
+		}
+		return
+	}
+
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		filename := fmt.Sprintf("blk%05d.dat", i)
 
@@ -72,8 +81,6 @@ func main() {
 				err = cmds.PrintBlockData(bl)
 			case CmdScripts:
 				err = cmds.PrintBlockScripts(bl, *flagOutDir)
-			case CmdOpReturns:
-				err = cmds.PrintBlockScriptsOpReturns(bl, *flagOutDir)
 			}
 
 			if err != nil {
