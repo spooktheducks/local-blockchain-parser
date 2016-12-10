@@ -16,4 +16,5 @@ mv local-blockchain-parser.exe dist/local-blockchain-parser-windowsamd64.exe
 
 echo Building Windows 386 binary...
 GOOS=windows GOARCH=386 go build github.com/WikiLeaksFreedomForce/local-blockchain-parser
-mv local-blockchain-parser.exe dist/local-blockchain-parser-windowsamd64.exe
+mv local-blockchain-parser.exe dist/local-blockchain-parser-windows386.exe
+
