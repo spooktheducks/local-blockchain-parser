@@ -3,7 +3,6 @@ package cmds
 import (
 	"bytes"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -63,6 +62,8 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		<-chDone
 	}
 
+	fmt.Println(".dat files written to", outSubdir)
+
 	// close CSV writer channel
 	close(chCSVData)
 
@@ -79,16 +80,12 @@ func writeCSV(outSubdir string, chCSVData chan csvLine, chCSVDone chan bool, chE
 	defer close(chCSVDone)
 
 	csvFilepath := filepath.Join(outSubdir, "all-blocks.csv")
-	<-fileSemaphore
-	csvFile, err := os.Create(csvFilepath)
+	csvFile, err := createFile(csvFilepath)
 	if err != nil {
 		chErr <- err
 		return
 	}
-	defer func() {
-		csvFile.Close()
-		fileSemaphore <- true
-	}()
+	defer closeFile(csvFile)
 
 	_, err = csvFile.WriteString(fmt.Sprintf("blockHash,txHash,scriptData\n"))
 	if err != nil {
@@ -135,7 +132,9 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 		for _, tx := range bl.Transactions() {
 			txHash := tx.Hash().String()
 
-			for txoutIdx, txout := range tx.MsgTx().TxOut {
+			allTxOutData := []byte{}
+
+			for /*txoutIdx*/ _, txout := range tx.MsgTx().TxOut {
 				scriptStr, err := txscript.DisasmString(txout.PkScript)
 				if err != nil {
 					if err.Error() == "execute past end of script" {
@@ -158,33 +157,52 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 					continue
 				}
 
-				fileHeaderMatches := searchDataForFileHeaders(data)
-				if len(fileHeaderMatches) > 0 {
-					for _, match := range fileHeaderMatches {
-						fmt.Printf("- file header match (type: %v) (block hash: %v) (tx hash: %v)\n", match.filetype, blockHash, txHash)
-					}
-				}
+				allTxOutData = append(allTxOutData, data...)
 
-				txFilename := filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", txHash, txoutIdx))
-				f, err := createFile(txFilename)
-				if err != nil {
-					chErr <- err
-					return
-				}
-
-				_, err = f.Write(data)
-				if err != nil {
-					closeFile(f)
-					chErr <- err
-					return
-				}
-				closeFile(f)
-				fmt.Println(txFilename, "written.")
+				// txoutFilename := filepath.Join(blockDir, fmt.Sprintf("%v-%v.dat", txHash, txoutIdx))
+				// err = createAndWriteFile(txoutFilename, data)
+				// if err != nil {
+				// 	chErr <- err
+				// 	return
+				// }
 
 				chCSVData <- csvLine{blockHash, txHash, data}
 			}
+
+			headerMatches, footerMatches := searchDataForFileHeaders(allTxOutData)
+			if len(headerMatches) > 0 {
+				for _, match := range headerMatches {
+					fmt.Printf("- file header match (type: %v) (block hash: %v) (tx hash: %v)\n", match.filetype, blockHash, txHash)
+				}
+			}
+			if len(footerMatches) > 0 {
+				for _, match := range footerMatches {
+					fmt.Printf("- file footer match (type: %v) (block hash: %v) (tx hash: %v)\n", match.filetype, blockHash, txHash)
+				}
+			}
+
+			allTxOutFilename := filepath.Join(blockDir, fmt.Sprintf("txouts-combined-%v.dat", txHash))
+			err = createAndWriteFile(allTxOutFilename, allTxOutData)
+			if err != nil {
+				chErr <- err
+				return
+			}
 		}
 	}
+}
+
+func createAndWriteFile(path string, bytes []byte) error {
+	f, err := createFile(path)
+	if err != nil {
+		return err
+	}
+
+	_, err = f.Write(bytes)
+	if err != nil {
+		closeFile(f)
+		return err
+	}
+	return closeFile(f)
 }
 
 func createFile(path string) (*os.File, error) {
@@ -214,42 +232,74 @@ var fileHeaders = []fileHeaderDefinition{
 	{"doc", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
 	{"xls", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
 	{"ppt", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
-	{"zip", []byte{0x50, 0x4B, 0x03, 0x04, 0x14}},
+	{"zip", []byte{0x50, 0x4B, 0x03, 0x04, 0x14}}, // probably wrong
 	{"jpg", []byte{0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01, 0x01}},
 	{"gif", []byte{0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x4E, 0x01, 0x53, 0x00, 0xC4}},
-	{"pdf", []byte{0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E}},
-	{"7zip", []byte{0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C}},
+	{"pdf", []byte{0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E}}, // probably wrong
+	{"7zip", []byte{0x37, 0x7A, 0xBC, 0xAF, 0x27, 0x1C}},      // verified at endchan
 	{"Torrent", []byte{0x64, 0x38, 0x3A, 0x61, 0x6E, 0x6E, 0x6F, 0x75, 0x6E, 0x63, 0x65}},
 	{"AVI", []byte{0x52, 0x49, 0x46, 0x46}},
 }
 
-func searchDataForFileHeaders(data []byte) []fileHeaderDefinition {
+var fileFooters = []fileHeaderDefinition{
+	{"doc", []byte{0x57, 0x6F, 0x72, 0x64, 0x2E, 0x44, 0x6F, 0x63, 0x75, 0x6D, 0x65, 0x6E, 0x74, 0x2E}},
+	{"xls", []byte{0xFE, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x57, 0x00, 0x6F, 0x00, 0x72, 0x00, 0x6B, 0x00, 0x62, 0x00, 0x6F, 0x00, 0x6F, 0x00, 0x6B, 0x00}},
+	{"ppt", []byte{0x50, 0x00, 0x6F, 0x00, 0x77, 0x00, 0x65, 0x00, 0x72, 0x00, 0x50, 0x00, 0x6F, 0x00, 0x69, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x20, 0x00, 0x44, 0x00, 0x6F, 0x00, 0x63, 0x00, 0x75, 0x00, 0x6D, 0x00, 0x65, 0x00, 0x6E, 0x00, 0x74}},
+	{"zip", []byte{0x50, 0x4B, 0x05, 0x06, 0x00}}, // probably wrong
+	{"gif", []byte{0x21, 0x00, 0x00, 0x3B, 0x00}},
+	{"pdf", []byte{0x25, 0x25, 0x45, 0x4F, 0x46}},  // probably wrong
+	{"7zip", []byte{0x00, 0x00, 0x00, 0x17, 0x06}}, // verified with cablegate
+}
+
+func searchDataForFileHeaders(data []byte) ([]fileHeaderDefinition, []fileHeaderDefinition) {
 	if data == nil {
-		return []fileHeaderDefinition{}
+		return []fileHeaderDefinition{}, []fileHeaderDefinition{}
 	}
 
-	matches := []fileHeaderDefinition{}
+	headerMatches := []fileHeaderDefinition{}
 	for _, header := range fileHeaders {
 		if bytes.Contains(data, header.headerData) {
-			matches = append(matches, header)
+			headerMatches = append(headerMatches, header)
 		}
 	}
 
-	return matches
+	footerMatches := []fileHeaderDefinition{}
+	for _, header := range fileHeaders {
+		if bytes.Contains(data, header.headerData) {
+			footerMatches = append(footerMatches, header)
+		}
+	}
+
+	return headerMatches, footerMatches
 }
 
 func getOpReturnBytes(scriptStr string) ([]byte, error) {
 	toks := strings.Split(scriptStr, " ")
 
-	for i := range toks {
-		if toks[i] == "OP_RETURN" {
-			if len(toks) >= i+2 {
-				return hex.DecodeString(toks[i+1])
-			} else {
-				return nil, errors.New("empty OP_RETURN data")
+	// for i := range toks {
+	// 	if toks[i] == "OP_RETURN" {
+	// 		if len(toks) >= i+2 {
+	// 			return hex.DecodeString(toks[i+1])
+	// 		} else {
+	// 			return nil, errors.New("empty OP_RETURN data")
+	// 		}
+	// 	}
+	// }
+
+	bs := []byte{}
+	for _, tok := range toks {
+		if len(tok) <= 3 {
+			continue
+		}
+
+		if tok[:3] != "OP_" && len(tok) >= 40 {
+			decoded, err := hex.DecodeString(tok)
+			if err != nil {
+				return nil, err
 			}
+			bs = append(bs, decoded...)
 		}
 	}
 
-	return nil, nil
+	return bs, nil
 }
