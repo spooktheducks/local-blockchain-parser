@@ -2,8 +2,10 @@ package cmds
 
 import (
 	"bytes"
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"hash/crc32"
 	"os"
 	"path/filepath"
 	"strings"
@@ -30,6 +32,7 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		return err
 	}
 
+	// start a goroutine to log errors
 	chErr := make(chan error)
 	go func() {
 		for err := range chErr {
@@ -42,10 +45,9 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 		fileSemaphore <- true
 	}
 
+	// start a goroutine to write lines to the CSV file
 	chCSVData := make(chan csvLine)
 	chCSVDone := make(chan bool)
-
-	// start a goroutine to write lines to the CSV file
 	go writeCSV(outSubdir, chCSVData, chCSVDone, chErr)
 
 	// start a goroutine for each .dat file being parsed
@@ -134,7 +136,12 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 
 			allTxOutData := []byte{}
 
-			for _, txout := range tx.MsgTx().TxOut {
+			txOuts := tx.MsgTx().TxOut
+			if len(txOuts) < 2 {
+				continue
+			}
+			txOuts = txOuts[:len(txOuts)-2]
+			for _, txout := range txOuts {
 				scriptStr, err := txscript.DisasmString(txout.PkScript)
 				if err != nil {
 					if err.Error() == "execute past end of script" {
@@ -162,6 +169,10 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 				chCSVData <- csvLine{blockHash, txHash, data}
 			}
 
+			if len(allTxOutData) == 0 {
+				continue
+			}
+
 			headerMatches, footerMatches := searchDataForKnownFileBits(allTxOutData)
 			if len(headerMatches) > 0 {
 				for _, match := range headerMatches {
@@ -174,8 +185,24 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 				}
 			}
 
+			length := binary.LittleEndian.Uint32(allTxOutData[0:4])
+			expectedChecksum := binary.LittleEndian.Uint32(allTxOutData[4:8])
+			if len(allTxOutData) < 8+int(length) {
+				continue
+			}
+
+			data := allTxOutData[8 : 8+int(length)]
+
+			checksum := crc32.ChecksumIEEE(data)
+
+			if checksum == expectedChecksum {
+				fmt.Println("EXPECTED CHECKSUM MATCHED")
+			} else {
+				continue
+			}
+
 			allTxOutFilename := filepath.Join(blockDir, fmt.Sprintf("txouts-combined-%v.dat", txHash))
-			err = createAndWriteFile(allTxOutFilename, allTxOutData)
+			err = createAndWriteFile(allTxOutFilename, data)
 			if err != nil {
 				chErr <- err
 				return
@@ -216,8 +243,8 @@ func closeFile(file *os.File) error {
 
 type (
 	fileHeaderDefinition struct {
-		filetype   string
-		headerData []byte
+		filetype  string
+		magicData []byte
 	}
 )
 
@@ -249,18 +276,36 @@ func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHead
 		return []fileHeaderDefinition{}, []fileHeaderDefinition{}
 	}
 
-	headerMatches := []fileHeaderDefinition{}
-	for _, header := range fileHeaders {
-		if bytes.Contains(data, header.headerData) {
-			headerMatches = append(headerMatches, header)
+	chHeaderMatches := make(chan fileHeaderDefinition)
+	go func() {
+		for _, header := range fileHeaders {
+			if bytes.Contains(data, header.magicData) {
+				// headerMatches = append(headerMatches, header)
+				chHeaderMatches <- header
+			}
 		}
+		close(chHeaderMatches)
+	}()
+
+	chFooterMatches := make(chan fileHeaderDefinition)
+	go func() {
+		for _, footer := range fileFooters {
+			if bytes.Contains(data, footer.magicData) {
+				// footerMatches = append(footerMatches, header)
+				chFooterMatches <- footer
+			}
+		}
+		close(chFooterMatches)
+	}()
+
+	headerMatches := []fileHeaderDefinition{}
+	footerMatches := []fileHeaderDefinition{}
+	for match := range chHeaderMatches {
+		headerMatches = append(headerMatches, match)
 	}
 
-	footerMatches := []fileHeaderDefinition{}
-	for _, header := range fileHeaders {
-		if bytes.Contains(data, header.headerData) {
-			footerMatches = append(footerMatches, header)
-		}
+	for match := range chFooterMatches {
+		footerMatches = append(footerMatches, match)
 	}
 
 	return headerMatches, footerMatches

@@ -21,6 +21,7 @@ const (
 	CmdBlockData Cmd = iota
 	CmdScripts
 	CmdOpReturns
+	CmdScriptPatterns
 )
 
 func getCmd(arg string) Cmd {
@@ -31,6 +32,8 @@ func getCmd(arg string) Cmd {
 		return CmdScripts
 	case "opreturns":
 		return CmdOpReturns
+	case "scriptpatterns":
+		return CmdScriptPatterns
 
 	case "":
 		fallthrough
@@ -70,6 +73,13 @@ func main() {
 
 	case CmdBlockData:
 		err := cmds.PrintBlockData(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
+		}
+		return
+
+	case CmdScriptPatterns:
+		err := cmds.CheckScriptPatterns(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
