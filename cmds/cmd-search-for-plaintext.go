@@ -5,30 +5,11 @@ import (
 	"os"
 	"path/filepath"
 
-	// "github.com/btcsuite/btcd/txscript"
-	// "github.com/btcsuite/btcutil"
-
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
-// var validTextChars = [65536]bool{}
-
-// func init() {
-// 	for _, r := range []rune{'\r', '\n', '\t'} {
-// 		validTextChars[int(r)] = true
-// 	}
-
-// 	for i := 32; i < 127; i++ {
-// 		validTextChars[i] = true
-// 	}
-
-// 	// for i := 128; i < 169; i++ {
-// 	// 	validTextChars[i] = true
-// 	// }
-// }
-
 func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error {
-	outSubdir := filepath.Join(".", outDir, "search-for-plaintext")
+	outSubdir := filepath.Join(".", outDir, "search-plaintext")
 
 	err := os.MkdirAll(outSubdir, 0777)
 	if err != nil {
@@ -43,16 +24,11 @@ func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error
 		}
 	}()
 
-	// fill up our file semaphore so we can obtain tokens from it
-	for i := 0; i < maxFiles; i++ {
-		fileSemaphore <- true
-	}
-
 	// start a goroutine for each .dat file being parsed
 	chDones := []chan bool{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go searchPlaintextParseBlock(inDir, outSubdir, i, chErr, chDone)
+		go searchForPlaintextParseBlock(inDir, outSubdir, i, chErr, chDone)
 		chDones = append(chDones, chDone)
 	}
 
@@ -67,26 +43,24 @@ func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error
 	return nil
 }
 
-func searchPlaintextParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool) {
+func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool) {
 	defer close(chDone)
 
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	<-fileSemaphore
 	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
-	fileSemaphore <- true
 	if err != nil {
 		chErr <- err
 		return
 	}
 
-	outFile, err := createFile(filepath.Join(outDir, fmt.Sprintf("blk%05d-plaintext.txt", blockFileNum)))
+	outFile, err := utils.CreateFile(filepath.Join(outDir, fmt.Sprintf("blk%05d-plaintext.txt", blockFileNum)))
 	if err != nil {
 		chErr <- err
 		return
 	}
-	defer closeFile(outFile)
+	defer utils.CloseFile(outFile)
 
 	for _, bl := range blocks {
 		blockHash := bl.Hash().String()
@@ -120,7 +94,7 @@ func searchPlaintextParseBlock(inDir string, outDir string, blockFileNum int, ch
 				}
 			}
 
-			parsedScriptData, err := concatNonOPHexTokensFromTxOuts(tx)
+			parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 			if err != nil {
 				chErr <- err
 				return

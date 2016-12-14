@@ -8,7 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 func CheckScriptPatterns(startBlock, endBlock uint64, inDir, outDir string) error {
@@ -26,11 +26,6 @@ func CheckScriptPatterns(startBlock, endBlock uint64, inDir, outDir string) erro
 			fmt.Println("error:", err)
 		}
 	}()
-
-	// fill up our file semaphore so we can obtain tokens from it
-	for i := 0; i < maxFiles; i++ {
-		fileSemaphore <- true
-	}
 
 	patterns := map[string]struct{}{}
 	chPatterns := make(chan string)
@@ -71,9 +66,7 @@ func scriptPatternsParseBlock(inDir string, outDir string, blockFileNum int, chP
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	<-fileSemaphore
 	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
-	fileSemaphore <- true
 	if err != nil {
 		chErr <- err
 		return

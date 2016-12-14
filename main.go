@@ -47,13 +47,13 @@ func main() {
 			panic(err)
 		}
 
-	case "scriptpatterns":
+	case "script-patterns":
 		err := cmds.CheckScriptPatterns(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
 
-	case "blockdb":
+	case "build-blockdb":
 		err := cmds.BuildBlockDB(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)

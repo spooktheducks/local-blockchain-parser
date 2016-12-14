@@ -10,7 +10,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 type csvLine struct {
@@ -34,11 +34,6 @@ func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir strin
 			fmt.Println("error:", err)
 		}
 	}()
-
-	// fill up our file semaphore so we can obtain tokens from it
-	for i := 0; i < maxFiles; i++ {
-		fileSemaphore <- true
-	}
 
 	// start a goroutine to write lines to the CSV file
 	chCSVData := make(chan csvLine)
@@ -77,12 +72,12 @@ func writeCSV(outSubdir string, chCSVData chan csvLine, chCSVDone chan bool, chE
 	defer close(chCSVDone)
 
 	csvFilepath := filepath.Join(outSubdir, "all-blocks.csv")
-	csvFile, err := createFile(csvFilepath)
+	csvFile, err := utils.CreateFile(csvFilepath)
 	if err != nil {
 		chErr <- err
 		return
 	}
-	defer closeFile(csvFile)
+	defer utils.CloseFile(csvFile)
 
 	_, err = csvFile.WriteString(fmt.Sprintf("blockHash,txHash,scriptData\n"))
 	if err != nil {
@@ -107,9 +102,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	<-fileSemaphore
 	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
-	fileSemaphore <- true
 	if err != nil {
 		chErr <- err
 		return
@@ -147,7 +140,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 					}
 				}
 
-				data, err := getNonOPBytes(scriptStr)
+				data, err := utils.GetNonOPBytes(scriptStr)
 				if err != nil {
 					if err.Error() == "encoding/hex: odd length hex string" {
 						continue
@@ -197,7 +190,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 			}
 
 			allTxOutFilename := filepath.Join(blockDir, fmt.Sprintf("txouts-combined-%v.dat", txHash))
-			err = createAndWriteFile(allTxOutFilename, data)
+			err = utils.CreateAndWriteFile(allTxOutFilename, data)
 			if err != nil {
 				chErr <- err
 				return

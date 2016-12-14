@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 func PrintBlockData(startBlock, endBlock uint64, inDir, outDir string) error {

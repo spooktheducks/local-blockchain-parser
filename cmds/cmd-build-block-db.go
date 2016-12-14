@@ -9,7 +9,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	// "github.com/btcsuite/btcutil"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 func BuildBlockDB(startBlock, endBlock uint64, inDir, outDir string) error {
@@ -27,11 +27,6 @@ func BuildBlockDB(startBlock, endBlock uint64, inDir, outDir string) error {
 			fmt.Println("error:", err)
 		}
 	}()
-
-	// fill up our file semaphore so we can obtain tokens from it
-	for i := 0; i < maxFiles; i++ {
-		fileSemaphore <- true
-	}
 
 	db, err := bolt.Open(filepath.Join(outSubdir, "blockchain.db"), 0600, nil)
 	if err != nil {
@@ -64,9 +59,7 @@ func buildDBParseBlock(inDir string, outDir string, db *bolt.DB, blockFileNum in
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	<-fileSemaphore
 	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
-	fileSemaphore <- true
 	if err != nil {
 		chErr <- err
 		return

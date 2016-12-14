@@ -11,7 +11,7 @@ import (
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 var cablegateTxs = map[string]bool{
@@ -163,11 +163,6 @@ func FindSuspiciousTxs(startBlock, endBlock uint64, inDir, outDir string) error 
 		}
 	}()
 
-	// fill up our file semaphore so we can obtain tokens from it
-	for i := 0; i < maxFiles; i++ {
-		fileSemaphore <- true
-	}
-
 	// start a goroutine for each .dat file being parsed
 	chDones := []chan bool{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
@@ -198,9 +193,7 @@ func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chEr
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	<-fileSemaphore
 	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
-	fileSemaphore <- true
 	if err != nil {
 		chErr <- err
 		return

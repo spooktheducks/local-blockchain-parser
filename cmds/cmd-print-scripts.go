@@ -7,7 +7,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/utils"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 func PrintBlockScripts(startBlock, endBlock uint64, inDir, outDir string) error {
@@ -29,11 +29,11 @@ func PrintBlockScripts(startBlock, endBlock uint64, inDir, outDir string) error 
 		for _, bl := range blocks {
 			blockHash := bl.Hash().String()
 
-			f, err := os.Create(filepath.Join(dir, blockHash+".txt"))
+			f, err := utils.CreateFile(filepath.Join(dir, blockHash+".txt"))
 			if err != nil {
 				return err
 			}
-			defer f.Close()
+			defer utils.CloseFile(f)
 
 			fmt.Println("===== BLOCK " + blockHash + " =====")
 			f.WriteString("[BLOCK " + blockHash + "]\n")
