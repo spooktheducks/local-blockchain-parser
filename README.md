@@ -62,6 +62,14 @@ You can verify this file by renaming `./output/op-returns/00000000000000ecbbff6b
 
 Not everything will be detected by the magic header/footer search.  If you run `./scan-opreturn-data.sh` in this repo after running this command, it will try to identify all valid files among the output using the `file` command.
 
+### Searching for plaintext (instructions?)
+
+```sh
+$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 123 --endBlock 456 search-plaintext
+```
+
+Output will be generated to `./output/search-plaintext/*.csv`.
+
 
 ### Other subcommands
 
