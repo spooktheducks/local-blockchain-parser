@@ -9,6 +9,10 @@ import (
 	"github.com/btcsuite/btcutil"
 )
 
+func SatoshisToBTCs(satoshis int64) float64 {
+	return float64(satoshis) * 0.00000001
+}
+
 func LoadBlockFile(file string) (blocks []*btcutil.Block, err error) {
 	var network = wire.MainNet
 	var dr io.Reader

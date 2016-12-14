@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds"
 )
@@ -13,35 +14,6 @@ var (
 	flagOutDir     = flag.String("outDir", "output", "Output directory")
 )
 
-type (
-	Cmd int
-)
-
-const (
-	CmdBlockData Cmd = iota
-	CmdScripts
-	CmdOpReturns
-	CmdScriptPatterns
-)
-
-func getCmd(arg string) Cmd {
-	switch arg {
-	case "blockdata":
-		return CmdBlockData
-	case "scripts":
-		return CmdScripts
-	case "opreturns":
-		return CmdOpReturns
-	case "scriptpatterns":
-		return CmdScriptPatterns
-
-	case "":
-		fallthrough
-	default:
-		panic("Must specify a command (blockdata, scripts, or opreturns)")
-	}
-}
-
 func main() {
 	flag.Parse()
 
@@ -51,38 +23,53 @@ func main() {
 		panic("Must specify --endBlock param")
 	}
 
-	cmd := getCmd(flag.Arg(0))
+	cmd := flag.Arg(0)
 
 	startBlock := uint64(*flagStartBlock)
 	endBlock := uint64(*flagEndBlock)
 
 	switch cmd {
-	case CmdOpReturns:
+	case "opreturns":
 		err := cmds.PrintBlockScriptsOpReturns(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
-		return
 
-	case CmdScripts:
+	case "scripts":
 		err := cmds.PrintBlockScripts(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
-		return
 
-	case CmdBlockData:
+	case "blockdata":
 		err := cmds.PrintBlockData(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
-		return
 
-	case CmdScriptPatterns:
+	case "scriptpatterns":
 		err := cmds.CheckScriptPatterns(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
-		return
+
+	case "blockdb":
+		err := cmds.BuildBlockDB(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
+		}
+
+	case "search-plaintext":
+		err := cmds.SearchForPlaintext(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
+		}
+
+	default:
+		panic("unknown subcommand '" + cmd + "'")
 	}
+
+	fmt.Println("DONE")
+	var s string
+	_, _ = fmt.Scanln(&s)
 }

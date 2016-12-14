@@ -82,15 +82,7 @@ func scriptPatternsParseBlock(inDir string, outDir string, blockFileNum int, chP
 	regex := regexp.MustCompile("(?:^| )([^(?:OP_)]+)(?:$| )")
 
 	for _, bl := range blocks {
-		blockHash := bl.Hash().String()
-
-		blockDir := filepath.Join(outDir, blockHash)
-
-		err = os.MkdirAll(blockDir, 0777)
-		if err != nil {
-			chErr <- err
-			return
-		}
+		// blockHash := bl.Hash().String()
 
 		for _, tx := range bl.Transactions() {
 			for _, txout := range tx.MsgTx().TxOut {

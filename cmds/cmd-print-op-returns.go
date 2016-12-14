@@ -3,12 +3,10 @@ package cmds
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
 	"fmt"
 	"hash/crc32"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/btcsuite/btcd/txscript"
 
@@ -20,9 +18,6 @@ type csvLine struct {
 	txHash     string
 	scriptData []byte
 }
-
-var maxFiles = 256
-var fileSemaphore = make(chan bool, maxFiles)
 
 func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir string) error {
 	outSubdir := filepath.Join(".", outDir, "op-returns")
@@ -211,36 +206,6 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 	}
 }
 
-func createAndWriteFile(path string, bytes []byte) error {
-	f, err := createFile(path)
-	if err != nil {
-		return err
-	}
-
-	_, err = f.Write(bytes)
-	if err != nil {
-		closeFile(f)
-		return err
-	}
-	return closeFile(f)
-}
-
-func createFile(path string) (*os.File, error) {
-	<-fileSemaphore
-	f, err := os.Create(path)
-	if err != nil {
-		fileSemaphore <- true
-		return nil, err
-	}
-	return f, nil
-}
-
-func closeFile(file *os.File) error {
-	err := file.Close()
-	fileSemaphore <- true
-	return err
-}
-
 type (
 	fileHeaderDefinition struct {
 		filetype  string
@@ -309,35 +274,4 @@ func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHead
 	}
 
 	return headerMatches, footerMatches
-}
-
-func getNonOPBytes(scriptStr string) ([]byte, error) {
-	toks := strings.Split(scriptStr, " ")
-
-	// for i := range toks {
-	// 	if toks[i] == "OP_RETURN" {
-	// 		if len(toks) >= i+2 {
-	// 			return hex.DecodeString(toks[i+1])
-	// 		} else {
-	// 			return nil, errors.New("empty OP_RETURN data")
-	// 		}
-	// 	}
-	// }
-
-	bs := []byte{}
-	for _, tok := range toks {
-		if len(tok) <= 3 {
-			continue
-		}
-
-		if tok[:3] != "OP_" && len(tok) >= 40 {
-			decoded, err := hex.DecodeString(tok)
-			if err != nil {
-				return nil, err
-			}
-			bs = append(bs, decoded...)
-		}
-	}
-
-	return bs, nil
 }

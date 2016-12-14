@@ -3,3 +3,4 @@ data/*
 output/*
 dist/*
 local-blockchain-parser
+blockchain.db
