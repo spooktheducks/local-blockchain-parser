@@ -38,7 +38,9 @@ Either rename the executable to `local-blockchain-parser` or use the existing ex
 
 Acquire some blockchain `.dat` files: <https://mega.nz/#!Y0g3TZxZ!Dgx9bew6hx7gT2s1vE1SRFBjWETOh6HjccC9YL4DH5s>
 
-Assuming you have a single .dat file called `blk00689.dat` in it, you can run one of the following commands:
+Put them in a folder called `data` in this repo.
+
+Assuming you have a single .dat file called `blk00689.dat` in your `data` folder, you can run one of the following commands:
 
 
 ### Viewing satoshi-downloader encoded data
@@ -46,7 +48,7 @@ Assuming you have a single .dat file called `blk00689.dat` in it, you can run on
 This is based on the encoding/decoding method from the satoshi python scripts used for cablegate.
 
 ```sh
-$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 opreturns
+$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 opreturns
 ```
 
 Each time the program finds non-`OP_` tokens in the TxOut scripts, it will create a .dat file containing the raw bytes from the associated data field (the data is concatenated across all TxOuts for the given transaction).
@@ -65,7 +67,7 @@ Not everything will be detected by the magic header/footer search.  If you run `
 ### Searching for plaintext (instructions?)
 
 ```sh
-$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 search-plaintext
+$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 search-plaintext
 ```
 
 Output will be generated to `./output/search-plaintext/*.csv`.
@@ -76,13 +78,13 @@ Output will be generated to `./output/search-plaintext/*.csv`.
 Viewing basic block data (no file output currently — just logs block info to the console):
 
 ```sh
-$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 blockdata
+$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 blockdata
 ```
 
 Viewing transaction scripts as strings (script strings will be dumped as .txt files):
 
 ```sh
-$ local-blockchain-parser --inDir /path/to/data/dir --startBlock 689 --endBlock 689 scripts
+$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 scripts
 ```
 
 
