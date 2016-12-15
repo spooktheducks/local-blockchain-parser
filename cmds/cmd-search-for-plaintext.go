@@ -63,6 +63,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 	defer utils.CloseFile(outFile)
 
 	for _, bl := range blocks {
+		fmt.Println("==================", bl.MsgBlock().Header.Timestamp, "==================")
 		blockHash := bl.Hash().String()
 
 		for _, tx := range bl.Transactions() {
@@ -70,7 +71,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 
 			for txinIdx, txin := range tx.MsgTx().TxIn {
 				txt, isText := extractText(txin.SignatureScript)
-				if !isText {
+				if !isText || len(txt) < 8 {
 					continue
 				}
 
@@ -83,7 +84,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 
 			for txoutIdx, txout := range tx.MsgTx().TxOut {
 				txt, isText := extractText(txout.PkScript)
-				if !isText {
+				if !isText || len(txt) < 8 {
 					continue
 				}
 

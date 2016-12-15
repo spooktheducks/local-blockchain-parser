@@ -8,7 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/txscript"
+	// "github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -167,7 +167,7 @@ func FindSuspiciousTxs(startBlock, endBlock uint64, inDir, outDir string) error 
 	chDones := []chan bool{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go suspiciousTxsParseBlock(inDir, outSubdir, i, chErr, chDone)
+		findSuspiciousTxsParseBlock(inDir, outSubdir, i, chErr, chDone)
 		chDones = append(chDones, chDone)
 	}
 
@@ -187,7 +187,7 @@ type suspiciousTx struct {
 	ParentHashes []string
 }
 
-func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool) {
+func findSuspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool) {
 	defer close(chDone)
 
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
@@ -199,7 +199,7 @@ func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chEr
 		return
 	}
 
-	suspiciousTxs := map[string]suspiciousTx{}
+	// suspiciousTxs := map[string]suspiciousTx{}
 
 	for _, bl := range blocks {
 		// blockHash := bl.Hash().String()
@@ -207,7 +207,7 @@ func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chEr
 		for _, tx := range bl.Transactions() {
 			txHash := tx.Hash().String()
 
-			if isSuspiciousTx(tx) {
+			/*if isSuspiciousTx(tx) {
 				parentHashes := []string{}
 				for _, txin := range tx.MsgTx().TxIn {
 					parentHash := txin.PreviousOutPoint.Hash.String()
@@ -236,6 +236,21 @@ func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chEr
 					ParentHashes: parentHashes,
 				}
 
+			}*/
+
+			if txHash == "cce82f3bde0537f82a55f3b8458cb50d632977f85c81dad3e1983a3348638f5c" {
+				// for _, txout := range tx.MsgTx().TxOut {
+				bs, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+				if err != nil {
+					panic(err)
+				}
+				err = utils.CreateAndWriteFile("blahhh", bs)
+				if err != nil {
+					panic(err)
+				}
+				fmt.Println(string(bs))
+				panic("done.")
+				// }
 			}
 		}
 	}
@@ -250,15 +265,15 @@ func suspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, chEr
 	// }
 	// }
 
-	for txHash := range cablegateTxs {
-		fmt.Println(txHash)
-		for _, ph := range suspiciousTxs[txHash].ParentHashes {
-			fmt.Println("  -", ph)
-		}
-	}
+	// for txHash := range cablegateTxs {
+	// 	fmt.Println(txHash)
+	// 	for _, ph := range suspiciousTxs[txHash].ParentHashes {
+	// 		fmt.Println("  -", ph)
+	// 	}
+	// }
 
-	fmt.Println(len(cablegateTxs))
-	fmt.Println(len(suspiciousTxs))
+	// fmt.Println(len(cablegateTxs))
+	// fmt.Println(len(suspiciousTxs))
 }
 
 func isSuspiciousTx(tx *btcutil.Tx) bool {

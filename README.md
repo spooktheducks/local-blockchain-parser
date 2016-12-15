@@ -43,7 +43,7 @@ Put them in a folder called `data` in this repo.
 Assuming you have a single .dat file called `blk00689.dat` in your `data` folder, you can run one of the following commands:
 
 
-### Viewing satoshi-downloader encoded data
+### Identifying "satoshi downloader"-style encoded data
 
 This is based on the encoding/decoding method from the satoshi python scripts used for cablegate.
 
@@ -64,7 +64,7 @@ You can verify this file by renaming `./output/op-returns/00000000000000ecbbff6b
 
 Not everything will be detected by the magic header/footer search.  If you run `./scan-opreturn-data.sh` in this repo after running this command, it will try to identify all valid files among the output using the `file` command.
 
-### Searching for plaintext (instructions?)
+### Searching for plaintext encoded into the blockchain
 
 ```sh
 $ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 search-plaintext
@@ -75,10 +75,10 @@ Output will be generated to `./output/search-plaintext/*.csv`.
 
 ### Other subcommands
 
-Viewing basic block data (no file output currently — just logs block info to the console):
+Identify all possible `OP_` code patterns (in TxIn/TxOut scripts):
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 blockdata
+$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 script-patterns
 ```
 
 Viewing transaction scripts as strings (script strings will be dumped as .txt files):

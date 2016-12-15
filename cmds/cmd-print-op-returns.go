@@ -19,7 +19,7 @@ type csvLine struct {
 	scriptData []byte
 }
 
-func PrintBlockScriptsOpReturns(startBlock, endBlock uint64, inDir, outDir string) error {
+func PrintOpReturns(startBlock, endBlock uint64, inDir, outDir string) error {
 	outSubdir := filepath.Join(".", outDir, "op-returns")
 
 	err := os.MkdirAll(outSubdir, 0777)
@@ -200,13 +200,13 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 }
 
 type (
-	fileHeaderDefinition struct {
+	fileHeaderDef struct {
 		filetype  string
 		magicData []byte
 	}
 )
 
-var fileHeaders = []fileHeaderDefinition{
+var fileHeaders = []fileHeaderDef{
 	{"doc", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
 	{"xls", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
 	{"ppt", []byte{0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1}},
@@ -219,7 +219,7 @@ var fileHeaders = []fileHeaderDefinition{
 	{"AVI", []byte{0x52, 0x49, 0x46, 0x46}},
 }
 
-var fileFooters = []fileHeaderDefinition{
+var fileFooters = []fileHeaderDef{
 	{"doc", []byte{0x57, 0x6F, 0x72, 0x64, 0x2E, 0x44, 0x6F, 0x63, 0x75, 0x6D, 0x65, 0x6E, 0x74, 0x2E}},
 	{"xls", []byte{0xFE, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x57, 0x00, 0x6F, 0x00, 0x72, 0x00, 0x6B, 0x00, 0x62, 0x00, 0x6F, 0x00, 0x6F, 0x00, 0x6B, 0x00}},
 	{"ppt", []byte{0x50, 0x00, 0x6F, 0x00, 0x77, 0x00, 0x65, 0x00, 0x72, 0x00, 0x50, 0x00, 0x6F, 0x00, 0x69, 0x00, 0x6E, 0x00, 0x74, 0x00, 0x20, 0x00, 0x44, 0x00, 0x6F, 0x00, 0x63, 0x00, 0x75, 0x00, 0x6D, 0x00, 0x65, 0x00, 0x6E, 0x00, 0x74}},
@@ -229,12 +229,12 @@ var fileFooters = []fileHeaderDefinition{
 	{"7zip", []byte{0x00, 0x00, 0x00, 0x17, 0x06}}, // verified with cablegate
 }
 
-func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHeaderDefinition) {
+func searchDataForKnownFileBits(data []byte) ([]fileHeaderDef, []fileHeaderDef) {
 	if data == nil {
-		return []fileHeaderDefinition{}, []fileHeaderDefinition{}
+		return []fileHeaderDef{}, []fileHeaderDef{}
 	}
 
-	chHeaderMatches := make(chan fileHeaderDefinition)
+	chHeaderMatches := make(chan fileHeaderDef)
 	go func() {
 		for _, header := range fileHeaders {
 			if bytes.Contains(data, header.magicData) {
@@ -245,7 +245,7 @@ func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHead
 		close(chHeaderMatches)
 	}()
 
-	chFooterMatches := make(chan fileHeaderDefinition)
+	chFooterMatches := make(chan fileHeaderDef)
 	go func() {
 		for _, footer := range fileFooters {
 			if bytes.Contains(data, footer.magicData) {
@@ -256,8 +256,8 @@ func searchDataForKnownFileBits(data []byte) ([]fileHeaderDefinition, []fileHead
 		close(chFooterMatches)
 	}()
 
-	headerMatches := []fileHeaderDefinition{}
-	footerMatches := []fileHeaderDefinition{}
+	headerMatches := []fileHeaderDef{}
+	footerMatches := []fileHeaderDef{}
 	for match := range chHeaderMatches {
 		headerMatches = append(headerMatches, match)
 	}

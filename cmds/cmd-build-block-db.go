@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/boltdb/bolt"
-	"github.com/btcsuite/btcd/txscript"
+	// "github.com/btcsuite/btcd/txscript"
 	// "github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -64,39 +64,40 @@ func buildDBParseBlock(inDir string, outDir string, db *bolt.DB, blockFileNum in
 		chErr <- err
 		return
 	}
+	fmt.Println("writing TxOut scripts...")
 
-	err = db.Update(func(boltTx *bolt.Tx) error {
-		b, err := boltTx.CreateBucket([]byte("Transactions"))
-		if err != nil {
-			return fmt.Errorf("create bucket: %s", err)
-		}
+	groupLen := 10
+	blockGroups := utils.GroupBlocks(blocks, groupLen)
 
-		for _, bl := range blocks {
-			blockHash := bl.Hash().String()
-
-			for _, tx := range bl.Transactions() {
-				txHash := tx.Hash().String()
-
-				for txoutIdx, txout := range tx.MsgTx().TxOut {
-					scriptStr, err := txscript.DisasmString(txout.PkScript)
-					if err != nil {
-						return err
-					}
-
-					err = b.Put([]byte(fmt.Sprintf("%v:%v:%v", blockHash, txHash, txoutIdx)), []byte(scriptStr))
-					if err != nil {
-						return err
-					}
-					fmt.Println("put succeeded:", txHash)
-				}
+	for g, group := range blockGroups {
+		err := db.Update(func(boltTx *bolt.Tx) error {
+			b, err := boltTx.CreateBucketIfNotExists([]byte("TxOutScripts"))
+			if err != nil {
+				return fmt.Errorf("create bucket: %s", err)
 			}
+
+			for blIdx, bl := range group {
+				blockHash := bl.Hash().String()
+
+				for _, tx := range bl.Transactions() {
+					txHash := tx.Hash().String()
+
+					for txoutIdx, txout := range tx.MsgTx().TxOut {
+						err = b.Put([]byte(fmt.Sprintf("%v:%v:%v", blockHash, txHash, txoutIdx)), txout.PkScript)
+						if err != nil {
+							return err
+						}
+					}
+				}
+				fmt.Printf("finished block %v (%v/%v)\n", blockHash, (g*groupLen)+blIdx+1, len(blocks))
+			}
+
+			return nil
+		})
+
+		if err != nil {
+			chErr <- err
+			return
 		}
-
-		return nil
-	})
-
-	if err != nil {
-		chErr <- err
-		return
 	}
 }

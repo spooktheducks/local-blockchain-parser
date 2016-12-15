@@ -168,3 +168,25 @@ func LoadBlockFile(file string) (blocks []*btcutil.Block, err error) {
 
 	return
 }
+
+func GroupBlocks(blocks []*btcutil.Block, groupLen int) [][]*btcutil.Block {
+	extra := len(blocks) % groupLen
+	numGroups := ((len(blocks) - extra) / groupLen) + 1
+
+	blockIdx := 0
+	groups := make([][]*btcutil.Block, numGroups)
+	for g := 0; g < numGroups; g++ {
+		groups[g] = []*btcutil.Block{}
+
+		for i := 0; i < groupLen; i++ {
+			groups[g] = append(groups[g], blocks[blockIdx])
+			blockIdx++
+
+			if blockIdx == len(blocks) {
+				return groups
+			}
+		}
+	}
+
+	return groups
+}

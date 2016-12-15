@@ -30,19 +30,13 @@ func main() {
 
 	switch cmd {
 	case "opreturns":
-		err := cmds.PrintBlockScriptsOpReturns(startBlock, endBlock, *flagInDir, *flagOutDir)
+		err := cmds.PrintOpReturns(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
 
 	case "scripts":
 		err := cmds.PrintBlockScripts(startBlock, endBlock, *flagInDir, *flagOutDir)
-		if err != nil {
-			panic(err)
-		}
-
-	case "blockdata":
-		err := cmds.PrintBlockData(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
@@ -55,6 +49,12 @@ func main() {
 
 	case "build-blockdb":
 		err := cmds.BuildBlockDB(startBlock, endBlock, *flagInDir, *flagOutDir)
+		if err != nil {
+			panic(err)
+		}
+
+	case "suspicious-txs":
+		err := cmds.FindSuspiciousTxs(startBlock, endBlock, *flagInDir, *flagOutDir)
 		if err != nil {
 			panic(err)
 		}
