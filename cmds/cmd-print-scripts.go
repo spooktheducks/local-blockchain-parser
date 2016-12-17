@@ -21,7 +21,7 @@ func PrintBlockScripts(startBlock, endBlock uint64, inDir, outDir string) error 
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		filename := fmt.Sprintf("blk%05d.dat", i)
 
-		blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
+		blocks, err := utils.LoadBlocksFromDAT(filepath.Join(inDir, filename))
 		if err != nil {
 			panic(err)
 		}

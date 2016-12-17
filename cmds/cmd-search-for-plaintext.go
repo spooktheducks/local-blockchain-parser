@@ -49,7 +49,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
+	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(inDir, filename))
 	if err != nil {
 		chErr <- err
 		return
@@ -69,6 +69,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 		for _, tx := range bl.Transactions() {
 			txHash := tx.Hash().String()
 
+			// extract text from each TxIn scriptSig
 			for txinIdx, txin := range tx.MsgTx().TxIn {
 				txt, isText := extractText(txin.SignatureScript)
 				if !isText || len(txt) < 8 {
@@ -82,6 +83,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 				}
 			}
 
+			// extract text from each TxOut PkScript
 			for txoutIdx, txout := range tx.MsgTx().TxOut {
 				txt, isText := extractText(txout.PkScript)
 				if !isText || len(txt) < 8 {
@@ -94,6 +96,8 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 					return
 				}
 			}
+
+			// extract text from concatenated TxOut hex tokens
 
 			parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 			if err != nil {

@@ -193,7 +193,7 @@ func findSuspiciousTxsParseBlock(inDir string, outDir string, blockFileNum int, 
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	blocks, err := utils.LoadBlockFile(filepath.Join(inDir, filename))
+	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(inDir, filename))
 	if err != nil {
 		chErr <- err
 		return
