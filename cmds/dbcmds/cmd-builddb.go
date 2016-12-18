@@ -1,4 +1,4 @@
-package querycmds
+package dbcmds
 
 import (
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"

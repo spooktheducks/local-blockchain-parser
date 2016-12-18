@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/querycmds"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/dbcmds"
 	"github.com/urfave/cli"
 )
 
@@ -29,7 +29,7 @@ func main() {
 						if txHash == "" {
 							return fmt.Errorf("must specify tx hash")
 						}
-						cmd := querycmds.NewTxInfoCommand(datFileDir, dbFile, txHash)
+						cmd := dbcmds.NewTxInfoCommand(datFileDir, dbFile, txHash)
 						return cmd.RunCommand()
 					},
 				},
@@ -45,7 +45,7 @@ func main() {
 						if blockHash == "" {
 							return fmt.Errorf("must specify block hash")
 						}
-						cmd := querycmds.NewBlockInfoCommand(datFileDir, dbFile, blockHash)
+						cmd := dbcmds.NewBlockInfoCommand(datFileDir, dbFile, blockHash)
 						return cmd.RunCommand()
 					},
 				},
@@ -61,7 +61,7 @@ func main() {
 						if txHash == "" {
 							return fmt.Errorf("must specify tx hash")
 						}
-						cmd := querycmds.NewTxChainCommand(datFileDir, dbFile, txHash)
+						cmd := dbcmds.NewTxChainCommand(datFileDir, dbFile, txHash)
 						return cmd.RunCommand()
 					},
 				},
@@ -78,7 +78,7 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
-				cmd := querycmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile)
+				cmd := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile)
 				return cmd.RunCommand()
 			},
 		},
@@ -107,7 +107,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, inDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("inDir"), c.String("outDir")
-				return cmds.SearchForPlaintext(startBlock, endBlock, inDir, outDir)
+				cmd := cmds.NewFindPlaintextCommand(startBlock, endBlock, inDir, outDir)
+				return cmd.RunCommand()
 			},
 		},
 

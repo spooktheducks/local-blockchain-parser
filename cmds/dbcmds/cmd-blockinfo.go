@@ -1,4 +1,4 @@
-package querycmds
+package dbcmds
 
 import (
 	"fmt"
