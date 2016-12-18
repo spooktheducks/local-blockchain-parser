@@ -8,10 +8,24 @@ import (
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
-func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error {
-	outSubdir := filepath.Join(".", outDir, "search-plaintext")
+type (
+	FindPlaintextCommand struct {
+		startBlock, endBlock uint64
+		inDir, outDir        string
+	}
+)
 
-	err := os.MkdirAll(outSubdir, 0777)
+func NewFindPlaintextCommand(startBlock, endBlock uint64, inDir, outDir string) *FindPlaintextCommand {
+	return &FindPlaintextCommand{
+		startBlock: startBlock,
+		endBlock:   endBlock,
+		inDir:      inDir,
+		outDir:     filepath.Join(outDir, "search-plaintext"),
+	}
+}
+
+func (cmd *FindPlaintextCommand) RunCommand() error {
+	err := os.MkdirAll(cmd.outDir, 0777)
 	if err != nil {
 		return err
 	}
@@ -26,9 +40,9 @@ func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error
 
 	// start a goroutine for each .dat file being parsed
 	chDones := []chan bool{}
-	for i := int(startBlock); i < int(endBlock)+1; i++ {
+	for i := int(cmd.startBlock); i < int(cmd.endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go searchForPlaintextParseBlock(inDir, outSubdir, i, chErr, chDone)
+		go cmd.parseBlock(i, chErr, chDone)
 		chDones = append(chDones, chDone)
 	}
 
@@ -43,19 +57,19 @@ func SearchForPlaintext(startBlock, endBlock uint64, inDir, outDir string) error
 	return nil
 }
 
-func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool) {
+func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, chDone chan bool) {
 	defer close(chDone)
 
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(inDir, filename))
+	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(cmd.inDir, filename))
 	if err != nil {
 		chErr <- err
 		return
 	}
 
-	outFile, err := utils.CreateFile(filepath.Join(outDir, fmt.Sprintf("blk%05d-plaintext.txt", blockFileNum)))
+	outFile, err := utils.CreateFile(filepath.Join(cmd.outDir, fmt.Sprintf("blk%05d-plaintext.txt", blockFileNum)))
 	if err != nil {
 		chErr <- err
 		return
@@ -63,7 +77,6 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 	defer utils.CloseFile(outFile)
 
 	for _, bl := range blocks {
-		fmt.Println("==================", bl.MsgBlock().Header.Timestamp, "==================")
 		blockHash := bl.Hash().String()
 
 		for _, tx := range bl.Transactions() {
@@ -71,7 +84,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 
 			// extract text from each TxIn scriptSig
 			for txinIdx, txin := range tx.MsgTx().TxIn {
-				txt, isText := extractText(txin.SignatureScript)
+				txt, isText := utils.ExtractText(txin.SignatureScript)
 				if !isText || len(txt) < 8 {
 					continue
 				}
@@ -85,7 +98,7 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 
 			// extract text from each TxOut PkScript
 			for txoutIdx, txout := range tx.MsgTx().TxOut {
-				txt, isText := extractText(txout.PkScript)
+				txt, isText := utils.ExtractText(txout.PkScript)
 				if !isText || len(txt) < 8 {
 					continue
 				}
@@ -105,14 +118,13 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 				return
 			}
 
-			parsedScriptText, isText := extractText(parsedScriptData)
+			parsedScriptText, isText := utils.ExtractText(parsedScriptData)
 			if err != nil {
 				chErr <- err
 				return
 			}
 
 			if isText && len(parsedScriptText) > 8 {
-				fmt.Println(string(parsedScriptText))
 				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", -1, string(parsedScriptText)))
 				if err != nil {
 					chErr <- err
@@ -126,65 +138,4 @@ func searchForPlaintextParseBlock(inDir string, outDir string, blockFileNum int,
 		chErr <- err
 		return
 	}
-}
-
-func extractText(bs []byte) ([]byte, bool) {
-	start := 0
-
-	for start < len(bs) {
-		if isValidPlaintextByte(bs[start]) {
-			break
-		}
-		start++
-	}
-	if start == len(bs) {
-		return nil, false
-	}
-
-	end := start
-	for end < len(bs) {
-		if !isValidPlaintextByte(bs[end]) {
-			break
-		}
-		end++
-	}
-
-	sublen := end - start + 1
-	if sublen < 5 {
-		return nil, false
-	}
-
-	substr := bs[start:end]
-	return substr, true
-}
-
-func stripNonTextBytes(bs []byte) []byte {
-	newBs := make([]byte, len(bs))
-	newBsLen := 0
-	for i := range bs {
-		if isValidPlaintextByte(bs[i]) {
-			newBs[newBsLen] = bs[i]
-			newBsLen++
-		}
-	}
-
-	if newBsLen == 0 {
-		return nil
-	}
-
-	return newBs[0:newBsLen]
-}
-
-func isValidPlaintextByte(x byte) bool {
-	switch x {
-	case '\r', '\n', '\t', ' ':
-		return true
-	}
-
-	i := int(rune(x))
-	if i >= 32 && i < 127 {
-		return true
-	}
-
-	return false
 }
