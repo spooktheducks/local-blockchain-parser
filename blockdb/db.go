@@ -33,7 +33,32 @@ func (db *BlockDB) Close() error {
 	return db.store.Close()
 }
 
-func (db *BlockDB) IndexDATFiles(startBlock, endBlock uint64) error {
+func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
+	blockDATFiles := []string{}
+	for i := int(startBlock); i < int(endBlock)+1; i++ {
+		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
+	}
+
+	for _, datFilename := range blockDATFiles {
+		datFilepath := filepath.Join(db.datFileDir, datFilename)
+
+		fmt.Println("parsing block file", datFilepath)
+
+		blocks, err := utils.LoadBlocksFromDAT(datFilepath)
+		if err != nil {
+			return err
+		}
+
+		err = db.writeBlockIndexToDB(blocks, datFilename)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (db *BlockDB) IndexDATFileTransactions(startBlock, endBlock uint64) error {
 	blockDATFiles := []string{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))

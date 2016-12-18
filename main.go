@@ -78,7 +78,11 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
-				cmd := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile)
+				indexWhat := c.Args().Get(0)
+				cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile, indexWhat)
+				if err != nil {
+					return err
+				}
 				return cmd.RunCommand()
 			},
 		},
