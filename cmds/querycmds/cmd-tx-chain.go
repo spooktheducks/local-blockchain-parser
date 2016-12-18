@@ -1,9 +1,7 @@
 package querycmds
 
 import (
-	"encoding/binary"
 	"fmt"
-	"hash/crc32"
 
 	"github.com/btcsuite/btcutil"
 
@@ -104,13 +102,9 @@ func (cmd *TxChainCommand) writeDataFromTxs(txHashes []string, db *blockdb.Block
 			data = append(data, bs...)
 		}
 
-		length := binary.LittleEndian.Uint32(data[0:4])
-		checksum := binary.LittleEndian.Uint32(data[4:8])
-
-		data = data[8 : 8+length]
-
-		if crc32.ChecksumIEEE(data) != checksum {
-			return fmt.Errorf("crc32 failed")
+		data, err = utils.GetSatoshiEncodedData(data)
+		if err != nil {
+			return err
 		}
 
 		matches := utils.SearchDataForKnownFileBits(data)
