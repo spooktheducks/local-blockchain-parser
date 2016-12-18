@@ -105,16 +105,18 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 	// we break the blocks into a bunch of smaller groups because BoltDB writes much more quickly this way
 	groupLen := 10
 	blockGroups := utils.GroupBlocks(blocks, groupLen)
+	numBlocks := len(blocks)
 
-	for _, group := range blockGroups {
+	for g, group := range blockGroups {
 		err := db.store.Update(func(boltTx *bolt.Tx) error {
 			bucket, err := boltTx.CreateBucketIfNotExists([]byte("TransactionIndex"))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
 
-			for _, bl := range group {
+			for blkIdx, bl := range group {
 				blockHash := bl.Hash().String()
+				numTxs := len(bl.Transactions())
 
 				for txIdx, tx := range bl.Transactions() {
 					txHash := tx.Hash().String()
@@ -124,7 +126,7 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 						return err
 					}
 
-					fmt.Printf("finished tx %v\n", txHash)
+					fmt.Printf("finished tx %v (%v/%v) (%v/%v)\n", txHash, txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
 				}
 			}
 

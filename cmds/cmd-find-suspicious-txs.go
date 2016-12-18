@@ -1,14 +1,10 @@
 package cmds
 
 import (
-	// "encoding/json"
-	// "encoding/hex"
-	// "encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	// "github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
