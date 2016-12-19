@@ -40,9 +40,13 @@ func (cmd *FindPlaintextCommand) RunCommand() error {
 
 	// start a goroutine for each .dat file being parsed
 	chDones := []chan bool{}
+	procLimiter := make(chan bool, 5)
+	for i := 0; i < 5; i++ {
+		procLimiter <- true
+	}
 	for i := int(cmd.startBlock); i < int(cmd.endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go cmd.parseBlock(i, chErr, chDone)
+		go cmd.parseBlock(i, chErr, chDone, procLimiter)
 		chDones = append(chDones, chDone)
 	}
 
@@ -57,8 +61,10 @@ func (cmd *FindPlaintextCommand) RunCommand() error {
 	return nil
 }
 
-func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, chDone chan bool) {
+func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, chDone chan bool, procLimiter chan bool) {
 	defer close(chDone)
+	defer func() { procLimiter <- true }()
+	<-procLimiter
 
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)

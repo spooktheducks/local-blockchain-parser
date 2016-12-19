@@ -80,7 +80,7 @@ func findFileHeadersParseBlock(inDir string, outDir string, blockFileNum int, ch
 
 			// check TxIn scripts for known file headers/footers
 			for txinIdx, txin := range tx.MsgTx().TxIn {
-				matches := utils.SearchDataForKnownFileBits(txin.SignatureScript)
+				matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
 				for _, m := range matches {
 					_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", txinIdx, m.Description()), true)
 					if err != nil {
@@ -92,7 +92,7 @@ func findFileHeadersParseBlock(inDir string, outDir string, blockFileNum int, ch
 
 			// check TxOut scripts for known file headers/footers
 			for txoutIdx, txout := range tx.MsgTx().TxOut {
-				matches := utils.SearchDataForKnownFileBits(txout.PkScript)
+				matches := utils.SearchDataForMagicFileBytes(txout.PkScript)
 				for _, m := range matches {
 					_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", txoutIdx, m.Description()), true)
 					if err != nil {
@@ -108,7 +108,7 @@ func findFileHeadersParseBlock(inDir string, outDir string, blockFileNum int, ch
 				return
 			}
 
-			matches := utils.SearchDataForKnownFileBits(parsedScriptData)
+			matches := utils.SearchDataForMagicFileBytes(parsedScriptData)
 			for _, m := range matches {
 				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", -1, m.Description()), true)
 				if err != nil {

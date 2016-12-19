@@ -150,7 +150,7 @@ var fileMagicBytes = []FileMagicBytesDef{
 	{"Mendax", []byte{0x4d, 0x65, 0x6e, 0x64, 0x61, 0x7}},
 }
 
-func SearchDataForKnownFileBits(data []byte) []FileMagicBytesResult {
+func SearchDataForMagicFileBytes(data []byte) []FileMagicBytesResult {
 	if data == nil {
 		return []FileMagicBytesResult{}
 	}

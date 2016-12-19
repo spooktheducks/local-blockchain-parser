@@ -3,6 +3,7 @@ package dbcmds
 import (
 	"bytes"
 	"fmt"
+	"time"
 
 	"github.com/btcsuite/btcutil"
 	"golang.org/x/crypto/openpgp/packet"
@@ -32,12 +33,18 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 	defer db.Close()
 
+	txRow, blockRow, err := db.GetTxIndexRow(cmd.txHash)
+	if err != nil {
+		return err
+	}
+
 	tx, err := db.GetTx(cmd.txHash)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
+	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.Filename, time.Unix(blockRow.Timestamp, 0))
 
 	err = cmd.findPlaintext(tx)
 	if err != nil {
@@ -105,7 +112,7 @@ func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *btcutil.Tx) error {
 func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 	// check TxIn scripts for known file headers/footers
 	for txinIdx, txin := range tx.MsgTx().TxIn {
-		matches := utils.SearchDataForKnownFileBits(txin.SignatureScript)
+		matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
 		for _, m := range matches {
 			fmt.Printf("  - TxIn %v magic match: %v\n", txinIdx, m.Description())
 		}
@@ -113,7 +120,7 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 
 	// check TxOut scripts for known file headers/footers
 	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		matches := utils.SearchDataForKnownFileBits(txout.PkScript)
+		matches := utils.SearchDataForMagicFileBytes(txout.PkScript)
 		for _, m := range matches {
 			fmt.Printf("  - TxOut %v magic match: %v\n", txoutIdx, m.Description())
 		}
@@ -124,7 +131,7 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 		return err
 	}
 
-	matches := utils.SearchDataForKnownFileBits(parsedScriptData)
+	matches := utils.SearchDataForMagicFileBytes(parsedScriptData)
 	for _, m := range matches {
 		fmt.Printf("  - Concatenated TxOut magic match: %v\n", m.Description())
 	}

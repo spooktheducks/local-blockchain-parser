@@ -147,7 +147,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 				continue
 			}
 
-			matches := utils.SearchDataForKnownFileBits(allTxOutData)
+			matches := utils.SearchDataForMagicFileBytes(allTxOutData)
 			for _, match := range matches {
 				fmt.Printf("- file magic byte match -> type: %v (block hash: %v) (tx hash: %v)\n", match.Description(), blockHash, txHash)
 			}

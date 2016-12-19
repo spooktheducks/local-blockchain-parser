@@ -107,7 +107,7 @@ func (cmd *TxChainCommand) writeDataFromTxs(txHashes []string, db *blockdb.Block
 			return err
 		}
 
-		matches := utils.SearchDataForKnownFileBits(data)
+		matches := utils.SearchDataForMagicFileBytes(data)
 		for _, m := range matches {
 			fmt.Println(m.Description())
 		}

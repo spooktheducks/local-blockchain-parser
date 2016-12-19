@@ -265,7 +265,7 @@ func (db *BlockDB) GetBlock(blockHash string) (*btcutil.Block, error) {
 	return block, nil
 }
 
-func (db *BlockDB) GetTx(txHash string) (*btcutil.Tx, error) {
+func (db *BlockDB) GetTxIndexRow(txHash string) (TxIndexRow, BlockIndexRow, error) {
 	var err error
 	var txRow TxIndexRow
 	var blockRow BlockIndexRow
@@ -304,6 +304,15 @@ func (db *BlockDB) GetTx(txHash string) (*btcutil.Tx, error) {
 		return nil
 	})
 
+	if err != nil {
+		return TxIndexRow{}, BlockIndexRow{}, err
+	}
+
+	return txRow, blockRow, nil
+}
+
+func (db *BlockDB) GetTx(txHash string) (*btcutil.Tx, error) {
+	txRow, blockRow, err := db.GetTxIndexRow(txHash)
 	if err != nil {
 		return nil, err
 	}
