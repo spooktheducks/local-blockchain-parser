@@ -130,3 +130,14 @@ func GroupBlocks(blocks []*btcutil.Block, groupLen int) [][]*btcutil.Block {
 
 	return groups
 }
+
+func ReverseBytes(bs []byte) []byte {
+	length := len(bs)
+	reversed := make([]byte, length)
+
+	for i := range bs {
+		reversed[length-1-i] = bs[i]
+	}
+
+	return reversed
+}

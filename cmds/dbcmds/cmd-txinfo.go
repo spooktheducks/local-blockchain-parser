@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcutil"
-	// "golang.org/x/crypto/openpgp"
 	"golang.org/x/crypto/openpgp/packet"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
@@ -40,11 +39,6 @@ func (cmd *TxInfoCommand) RunCommand() error {
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 
-	// fmt.Println("TxOuts:")
-	// for txoutIdx, txout := range tx.MsgTx().TxOut {
-	// 	fmt.Printf("\n")
-	// }
-
 	err = cmd.findPlaintext(tx)
 	if err != nil {
 		return err
@@ -63,51 +57,6 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	err = cmd.findGPGData(tx)
 	if err != nil {
 		return err
-	}
-
-	// err = cmd.blah(db)
-	// if err != nil {
-	// 	return err
-	// }
-
-	return nil
-}
-
-func (cmd *TxInfoCommand) blah(db *blockdb.BlockDB) error {
-	fmt.Println("blah")
-	txs := []string{
-		// "7379ab5047b143c0b6cfe5d8d79ad240b4b4f8cced55aa26f86d1d3d370c0d4c",
-		// "d3c1cb2cdbf07c25e3c5f513de5ee36081a7c590e621f1f1eab62e8d4b50b635",
-		"cce82f3bde0537f82a55f3b8458cb50d632977f85c81dad3e1983a3348638f5c",
-	}
-
-	allData := []byte{}
-	for _, txHash := range txs {
-		tx, err := db.GetTx(txHash)
-		if err != nil {
-			return err
-		}
-
-		data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
-		if err != nil {
-			return err
-		}
-
-		data, err = utils.GetSatoshiEncodedData(data)
-		if err != nil {
-			return err
-		}
-
-		allData = append(allData, data...)
-	}
-
-	reader := packet.NewReader(bytes.NewReader(allData))
-	for {
-		packet, err := reader.Next()
-		if err != nil {
-			return err
-		}
-		fmt.Printf("  - GPG packet: %+v\n", packet)
 	}
 
 	return nil

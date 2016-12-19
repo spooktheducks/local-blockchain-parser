@@ -149,11 +149,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 
 			matches := utils.SearchDataForKnownFileBits(allTxOutData)
 			for _, match := range matches {
-				if match.Header {
-					fmt.Printf("- file header match (type: %v) (block hash: %v) (tx hash: %v)\n", match.Filetype, blockHash, txHash)
-				} else {
-					fmt.Printf("- file footer match (type: %v) (block hash: %v) (tx hash: %v)\n", match.Filetype, blockHash, txHash)
-				}
+				fmt.Printf("- file magic byte match -> type: %v (block hash: %v) (tx hash: %v)\n", match.Description(), blockHash, txHash)
 			}
 
 			length := binary.LittleEndian.Uint32(allTxOutData[0:4])
