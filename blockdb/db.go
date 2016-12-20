@@ -2,13 +2,14 @@ package blockdb
 
 import (
 	"crypto/sha256"
-	"encoding/binary"
+	// "encoding/binary"
 	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
 
 	"github.com/boltdb/bolt"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -350,12 +351,14 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 
 		for _, bl := range blocks {
 			for _, tx := range bl.Transactions() {
+				txHashBytes := tx.Hash().CloneBytes()
+
 				data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 				if err != nil {
 					return err
 				}
 
-				err = db.PutTxOutDuplicateData(data)
+				err = db.PutTxOutDuplicateData(txHashBytes, data)
 				if err != nil {
 					return err
 				}
@@ -367,7 +370,11 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 	return nil
 }
 
-func (db *BlockDB) PutTxOutDuplicateData(data []byte) error {
+func (db *BlockDB) PutTxOutDuplicateData(txHashBytes []byte, data []byte) error {
+	if len(txHashBytes) != chainhash.HashSize {
+		return fmt.Errorf("txHashBytes must be %v bytes long", chainhash.HashSize)
+	}
+
 	err := db.store.Update(func(boltTx *bolt.Tx) error {
 		bucket, err := boltTx.CreateBucketIfNotExists([]byte("TxOutDupes"))
 		if err != nil {
@@ -381,19 +388,24 @@ func (db *BlockDB) PutTxOutDuplicateData(data []byte) error {
 		}
 		hashedData := hasher.Sum(nil)
 
-		var newCount uint16
-		existingCount := bucket.Get(hashedData)
-		if existingCount == nil {
-			newCount = 1
+		// var newCount uint16
+		existing := bucket.Get(hashedData)
+		if existing == nil {
+			// newCount = 1
+			existing = txHashBytes
 		} else {
-			newCount = binary.LittleEndian.Uint16(existingCount) + 1
-			fmt.Println("dupe found", newCount)
+			// newCount = binary.LittleEndian.Uint16(existing) + 1
+			// fmt.Println("dupe found", newCount)
+			// numTxs := len(existing) / chainhash.HashSize
+			existing = append(existing, txHashBytes...)
 		}
 
-		newCountBytes := make([]byte, 2)
-		binary.LittleEndian.PutUint16(newCountBytes, newCount)
+		// newCountBytes := make([]byte, 2)
+		// binary.LittleEndian.PutUint16(newCountBytes, newCount)
 
-		err = bucket.Put(hashedData, newCountBytes)
+		// err = bucket.Put(hashedData, newCountBytes)
+
+		err = bucket.Put(hashedData, existing)
 		return err
 	})
 
@@ -408,10 +420,35 @@ func (db *BlockDB) ReadTxOutDuplicateData() error {
 		}
 
 		err := bucket.ForEach(func(key []byte, val []byte) error {
-			count := binary.LittleEndian.Uint16(val)
-			if count > 1 {
-				fmt.Println("dupe found")
+			// count := binary.LittleEndian.Uint16(val)
+			// if count > 1 {
+			// 	fmt.Println("dupe found")
+			// }
+			if len(val)%chainhash.HashSize != 0 {
+				return fmt.Errorf("value is corrupted")
 			}
+
+			numTxs := len(val) / chainhash.HashSize
+
+			if numTxs == 1 {
+				return nil
+			}
+
+			fmt.Printf("- %v txs sharing data:\n", numTxs)
+			for i := 0; i < numTxs; i++ {
+				txHashBytes := val[i*chainhash.HashSize : (i+1)*chainhash.HashSize]
+
+				hash := &chainhash.Hash{}
+				err := hash.SetBytes(txHashBytes)
+				if err != nil {
+					return err
+				}
+
+				txHash := hash.String()
+
+				fmt.Printf("  - %v\n", txHash)
+			}
+
 			return nil
 		})
 
