@@ -1,6 +1,8 @@
 package blockdb
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
 	"path/filepath"
 	"strconv"
@@ -328,4 +330,93 @@ func (db *BlockDB) GetTx(txHash string) (*btcutil.Tx, error) {
 	}
 
 	return tx, nil
+}
+
+func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) error {
+	blockDATFiles := []string{}
+	for i := int(startBlock); i < int(endBlock)+1; i++ {
+		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
+	}
+
+	for _, datFilename := range blockDATFiles {
+		datFilepath := filepath.Join(db.datFileDir, datFilename)
+
+		fmt.Println("parsing block file", datFilepath)
+
+		blocks, err := utils.LoadBlocksFromDAT(datFilepath)
+		if err != nil {
+			return err
+		}
+
+		for _, bl := range blocks {
+			for _, tx := range bl.Transactions() {
+				data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+				if err != nil {
+					return err
+				}
+
+				err = db.PutTxOutDuplicateData(data)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (db *BlockDB) PutTxOutDuplicateData(data []byte) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte("TxOutDupes"))
+		if err != nil {
+			return err
+		}
+
+		hasher := sha256.New()
+		_, err = hasher.Write(data)
+		if err != nil {
+			return err
+		}
+		hashedData := hasher.Sum(nil)
+
+		var newCount uint16
+		existingCount := bucket.Get(hashedData)
+		if existingCount == nil {
+			newCount = 1
+		} else {
+			newCount = binary.LittleEndian.Uint16(existingCount) + 1
+			fmt.Println("dupe found", newCount)
+		}
+
+		newCountBytes := make([]byte, 2)
+		binary.LittleEndian.PutUint16(newCountBytes, newCount)
+
+		err = bucket.Put(hashedData, newCountBytes)
+		return err
+	})
+
+	return err
+}
+
+func (db *BlockDB) ReadTxOutDuplicateData() error {
+	err := db.store.View(func(boltTx *bolt.Tx) error {
+		bucket := boltTx.Bucket([]byte("TxOutDupes"))
+		if bucket == nil {
+			return nil
+		}
+
+		err := bucket.ForEach(func(key []byte, val []byte) error {
+			count := binary.LittleEndian.Uint16(val)
+			if count > 1 {
+				fmt.Println("dupe found")
+			}
+			return nil
+		})
+
+		return err
+	})
+
+	return err
 }

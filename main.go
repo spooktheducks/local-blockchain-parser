@@ -65,6 +65,32 @@ func main() {
 						return cmd.RunCommand()
 					},
 				},
+				{
+					Name: "build-dupes-index",
+					Flags: []cli.Flag{
+						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+					},
+					Action: func(c *cli.Context) error {
+						startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
+						cmd := dbcmds.NewBuildDupesIndexCommand(startBlock, endBlock, datFileDir, dbFile)
+						return cmd.RunCommand()
+					},
+				},
+				{
+					Name: "find-dupes",
+					Flags: []cli.Flag{
+						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+					},
+					Action: func(c *cli.Context) error {
+						datFileDir, dbFile := c.String("datFileDir"), c.String("dbFile")
+						cmd := dbcmds.NewScanDupesIndexCommand(datFileDir, dbFile)
+						return cmd.RunCommand()
+					},
+				},
 			},
 		},
 
