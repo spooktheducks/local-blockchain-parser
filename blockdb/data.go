@@ -59,21 +59,39 @@ func (r TxIndexRow) ToBytes() ([]byte, error) {
 	return rowData.Bytes(), nil
 }
 
-// type SpentTxOutKey struct {
-// 	TxHash     chainhash.Hash
-// 	TxOutIndex uint32
-// }
+type SpentTxOutKey struct {
+	TxHash     chainhash.Hash
+	TxOutIndex uint32
+}
 
-// type SpentTxOutRow struct {
-// 	InputTxHash chainhash.Hash
-// 	TxInIndex   uint32
-// }
+type SpentTxOutRow struct {
+	InputTxHash chainhash.Hash
+	TxInIndex   uint32
+}
 
-// func (k SpentTxOutKey) ToBytes() ([]byte, error) {
-// 	rowData := &bytes.Buffer{}
-// 	err := binary.Write(rowData, binary.LittleEndian, k)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return rowData.Bytes(), nil
-// }
+func (k SpentTxOutKey) ToBytes() ([]byte, error) {
+	data := &bytes.Buffer{}
+	err := binary.Write(data, binary.LittleEndian, k)
+	if err != nil {
+		return nil, err
+	}
+	return data.Bytes(), nil
+}
+
+func NewSpentTxOutRowFromBytes(bs []byte) (SpentTxOutRow, error) {
+	row := SpentTxOutRow{}
+	err := binary.Read(bytes.NewReader(bs), binary.LittleEndian, &row)
+	if err != nil {
+		return SpentTxOutRow{}, err
+	}
+	return row, nil
+}
+
+func (r SpentTxOutRow) ToBytes() ([]byte, error) {
+	data := &bytes.Buffer{}
+	err := binary.Write(data, binary.LittleEndian, r)
+	if err != nil {
+		return nil, err
+	}
+	return data.Bytes(), nil
+}

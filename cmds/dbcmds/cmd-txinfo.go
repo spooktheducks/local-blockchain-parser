@@ -3,6 +3,7 @@ package dbcmds
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/btcsuite/btcutil"
@@ -50,6 +51,21 @@ func (cmd *TxInfoCommand) RunCommand() error {
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
+
+	for txoutIdx := range tx.MsgTx().TxOut {
+		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
+
+		spentTxOut, err := db.GetSpentTxOut(key)
+		if err != nil {
+			if strings.Contains(err.Error(), "can't find SpentTxOut") {
+				fmt.Printf("  - TxOut %v: unspent\n", txoutIdx)
+				continue
+			}
+			return err
+		}
+
+		fmt.Printf("  - TxOut %v: spent by %v (%v)\n", txoutIdx, spentTxOut.InputTxHash.String(), spentTxOut.TxInIndex)
+	}
 
 	err = cmd.findPlaintext(tx)
 	if err != nil {

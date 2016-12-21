@@ -298,29 +298,28 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 
 		for _, bl := range blocks {
 			for _, tx := range bl.Transactions() {
-				txHashBytes := tx.Hash().CloneBytes()
+				// txHashBytes := tx.Hash().CloneBytes()
 
 				data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 				if err != nil {
 					return err
 				}
 
-				err = db.PutTxOutDuplicateData(txHashBytes, data)
+				err = db.PutTxOutDuplicateData(*tx.Hash(), data)
 				if err != nil {
 					return err
 				}
 			}
 		}
-
 	}
 
 	return nil
 }
 
-func (db *BlockDB) PutTxOutDuplicateData(txHashBytes []byte, data []byte) error {
-	if len(txHashBytes) != chainhash.HashSize {
-		return fmt.Errorf("txHashBytes must be %v bytes long", chainhash.HashSize)
-	}
+func (db *BlockDB) PutTxOutDuplicateData(txHash chainhash.Hash, data []byte) error {
+	// if len(txHashBytes) != chainhash.HashSize {
+	// 	return fmt.Errorf("txHashBytes must be %v bytes long", chainhash.HashSize)
+	// }
 
 	err := db.store.Update(func(boltTx *bolt.Tx) error {
 		bucket, err := boltTx.CreateBucketIfNotExists([]byte("TxOutDupes"))
@@ -337,9 +336,9 @@ func (db *BlockDB) PutTxOutDuplicateData(txHashBytes []byte, data []byte) error 
 
 		existing := bucket.Get(hashedData)
 		if existing == nil {
-			existing = txHashBytes
+			existing = txHash[:]
 		} else {
-			existing = append(existing, txHashBytes...)
+			existing = append(existing, txHash[:]...)
 		}
 
 		err = bucket.Put(hashedData, existing)
@@ -384,4 +383,97 @@ func (db *BlockDB) ReadTxOutDuplicateData() error {
 	})
 
 	return err
+}
+
+func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
+	blockDATFiles := []string{}
+	for i := int(startBlock); i < int(endBlock)+1; i++ {
+		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
+	}
+
+	for _, datFilename := range blockDATFiles {
+		datFilepath := filepath.Join(db.datFileDir, datFilename)
+
+		fmt.Println("parsing block file", datFilepath)
+
+		blocks, err := utils.LoadBlocksFromDAT(datFilepath)
+		if err != nil {
+			return err
+		}
+
+		for _, bl := range blocks {
+			for _, tx := range bl.Transactions() {
+
+				for txinIdx, txin := range tx.MsgTx().TxIn {
+					key := SpentTxOutKey{TxHash: txin.PreviousOutPoint.Hash, TxOutIndex: txin.PreviousOutPoint.Index}
+					val := SpentTxOutRow{InputTxHash: *tx.Hash(), TxInIndex: uint32(txinIdx)}
+
+					err = db.PutSpentTxOut(key, val)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+	}
+
+	return nil
+}
+
+func (db *BlockDB) PutSpentTxOut(key SpentTxOutKey, val SpentTxOutRow) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte("SpentTxOuts"))
+		if err != nil {
+			return err
+		}
+
+		keyBytes, err := key.ToBytes()
+		if err != nil {
+			return err
+		}
+
+		valBytes, err := val.ToBytes()
+		if err != nil {
+			return err
+		}
+
+		err = bucket.Put(keyBytes, valBytes)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
+	var row SpentTxOutRow
+	err := db.store.View(func(boltTx *bolt.Tx) error {
+		bucket := boltTx.Bucket([]byte("SpentTxOuts"))
+		if bucket == nil {
+			return fmt.Errorf("can't find bucket SpentTxOuts")
+		}
+
+		keyBytes, err := key.ToBytes()
+		if err != nil {
+			return err
+		}
+
+		valBytes := bucket.Get(keyBytes)
+		if valBytes == nil {
+			return fmt.Errorf("can't find SpentTxOut %+v", key)
+		}
+
+		row, err = NewSpentTxOutRowFromBytes(valBytes)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	return row, err
 }
