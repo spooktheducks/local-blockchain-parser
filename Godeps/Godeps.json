@@ -1,0 +1,94 @@
+{
+	"ImportPath": "github.com/WikiLeaksFreedomForce/local-blockchain-parser",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v74",
+	"Deps": [
+		{
+			"ImportPath": "github.com/boltdb/bolt",
+			"Comment": "v1.3.0-38-g7614a47",
+			"Rev": "7614a4738bf1ca79cda778407fe5ae89a4f465f6"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcd/btcec",
+			"Comment": "BTCD_0_12_0_BETA-279-g6022325",
+			"Rev": "602232500e50bc3b7f1e3d606331ef14d6f3e1ef"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcd/chaincfg",
+			"Comment": "BTCD_0_12_0_BETA-279-g6022325",
+			"Rev": "602232500e50bc3b7f1e3d606331ef14d6f3e1ef"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcd/chaincfg/chainhash",
+			"Comment": "BTCD_0_12_0_BETA-279-g6022325",
+			"Rev": "602232500e50bc3b7f1e3d606331ef14d6f3e1ef"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcd/txscript",
+			"Comment": "BTCD_0_12_0_BETA-279-g6022325",
+			"Rev": "602232500e50bc3b7f1e3d606331ef14d6f3e1ef"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcd/wire",
+			"Comment": "BTCD_0_12_0_BETA-279-g6022325",
+			"Rev": "602232500e50bc3b7f1e3d606331ef14d6f3e1ef"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btclog",
+			"Comment": "BTCLOG_0_0_3-8-g73889fb",
+			"Rev": "73889fb79bd687870312b6e40effcecffbd57d30"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcutil",
+			"Comment": "BTCUTIL_0_5_0-17-g96e858f",
+			"Rev": "96e858f48ed95f9245e765d98be0ee01176409c7"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/btcutil/base58",
+			"Comment": "BTCUTIL_0_5_0-17-g96e858f",
+			"Rev": "96e858f48ed95f9245e765d98be0ee01176409c7"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/fastsha256",
+			"Rev": "637e656429416087660c84436a2a035d69d54e2e"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/golangcrypto/ripemd160",
+			"Rev": "53f62d9b43e87a6c56975cf862af7edf33a8d0df"
+		},
+		{
+			"ImportPath": "github.com/btcsuite/seelog",
+			"Comment": "v2.1-84-g313961b",
+			"Rev": "313961b101eb55f65ae0f03ddd4e322731763b6c"
+		},
+		{
+			"ImportPath": "github.com/urfave/cli",
+			"Comment": "v1.19.1",
+			"Rev": "0bdeddeeb0f650497d603c4ad7b20cfe685682f6"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/cast5",
+			"Rev": "f5719d24587163700c5f7fa625ef3e05d9b372e7"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/elgamal",
+			"Rev": "f5719d24587163700c5f7fa625ef3e05d9b372e7"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/errors",
+			"Rev": "f5719d24587163700c5f7fa625ef3e05d9b372e7"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/packet",
+			"Rev": "f5719d24587163700c5f7fa625ef3e05d9b372e7"
+		},
+		{
+			"ImportPath": "golang.org/x/crypto/openpgp/s2k",
+			"Rev": "f5719d24587163700c5f7fa625ef3e05d9b372e7"
+		},
+		{
+			"ImportPath": "golang.org/x/sys/unix",
+			"Rev": "d75a52659825e75fff6158388dddc6a5b04f9ba5"
+		}
+	]
+}
