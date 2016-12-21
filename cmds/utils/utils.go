@@ -66,7 +66,7 @@ func LoadBlocksFromDAT(file string) (blocks []*btcutil.Block, err error) {
 	return
 }
 
-func LoadBlockFromDAT(file string, height int) (*btcutil.Block, error) {
+func LoadBlockFromDAT(file string, height uint32) (*btcutil.Block, error) {
 	<-fileSemaphore
 	defer func() { fileSemaphore <- true }()
 
@@ -79,7 +79,7 @@ func LoadBlockFromDAT(file string, height int) (*btcutil.Block, error) {
 
 	defer fi.Close()
 
-	for i := 0; i <= height; i++ {
+	for i := uint32(0); i <= height; i++ {
 		var networkBits uint32
 		err := binary.Read(fi, binary.LittleEndian, &networkBits)
 		if err == io.EOF {

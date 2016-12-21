@@ -89,23 +89,34 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 			txHash := tx.Hash().String()
 
 			// extract text from each TxIn scriptSig
-			for txinIdx, txin := range tx.MsgTx().TxIn {
-				txt, isText := utils.ExtractText(txin.SignatureScript)
-				if !isText || len(txt) < 8 {
-					continue
-				}
-
-				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", txinIdx, string(txt)))
-				if err != nil {
-					chErr <- err
-					return
-				}
+			data := make([]byte, 0)
+			for _, txin := range tx.MsgTx().TxIn {
+				data = append(data, txin.SignatureScript...)
+				// txt, isText := utils.ExtractText(txin.SignatureScript)
+				// if !isText || len(txt) < 8 {
+				// 	continue
+				// }
+			}
+			txt := utils.StripNonTextBytes(data)
+			if len(txt) < 8 {
+				continue
 			}
 
+			_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", -1, string(txt)))
+			if err != nil {
+				chErr <- err
+				return
+			}
+			// }
+
 			// extract text from each TxOut PkScript
-			for txoutIdx, txout := range tx.MsgTx().TxOut {
-				txt, isText := utils.ExtractText(txout.PkScript)
-				if !isText || len(txt) < 8 {
+			/*for txoutIdx, txout := range tx.MsgTx().TxOut {
+				// txt, isText := utils.ExtractText(txout.PkScript)
+				// if !isText || len(txt) < 8 {
+				// 	continue
+				// }
+				txt := utils.StripNonTextBytes(txout.PkScript)
+				if len(txt) < 8 {
 					continue
 				}
 
@@ -114,7 +125,7 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 					chErr <- err
 					return
 				}
-			}
+			}*/
 
 			// extract text from concatenated TxOut hex tokens
 
@@ -124,13 +135,14 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 				return
 			}
 
-			parsedScriptText, isText := utils.ExtractText(parsedScriptData)
-			if err != nil {
-				chErr <- err
-				return
-			}
-
-			if isText && len(parsedScriptText) > 8 {
+			// parsedScriptText, isText := utils.ExtractText(parsedScriptData)
+			// if err != nil {
+			// 	chErr <- err
+			// 	return
+			// }
+			parsedScriptText := utils.StripNonTextBytes(parsedScriptData)
+			// if isText && len(parsedScriptText) > 8 {
+			if len(parsedScriptText) > 8 {
 				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", -1, string(parsedScriptText)))
 				if err != nil {
 					chErr <- err

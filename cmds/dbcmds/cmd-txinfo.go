@@ -33,18 +33,23 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	txRow, blockRow, err := db.GetTxIndexRow(cmd.txHash)
+	txHash, err := blockdb.HashFromString(cmd.txHash)
 	if err != nil {
 		return err
 	}
 
-	tx, err := db.GetTx(cmd.txHash)
+	txRow, blockRow, err := db.GetTxIndexRow(txHash)
+	if err != nil {
+		return err
+	}
+
+	tx, err := db.GetTx(txHash)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
-	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.Filename, time.Unix(blockRow.Timestamp, 0))
+	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
 
 	err = cmd.findPlaintext(tx)
 	if err != nil {
@@ -142,8 +147,9 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 	// extract text from each TxIn scriptSig
 	for txinIdx, txin := range tx.MsgTx().TxIn {
-		txt, isText := utils.ExtractText(txin.SignatureScript)
-		if !isText || len(txt) < 8 {
+		// fmt.Println(string(utils.StripNonTextBytes(txin.SignatureScript)))
+		txt := utils.StripNonTextBytes(txin.SignatureScript)
+		if len(txt) < 8 {
 			continue
 		}
 
@@ -152,8 +158,9 @@ func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 
 	// extract text from each TxOut PkScript
 	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		txt, isText := utils.ExtractText(txout.PkScript)
-		if !isText || len(txt) < 8 {
+		// fmt.Println(string(utils.StripNonTextBytes(txout.PkScript)))
+		txt := utils.StripNonTextBytes(txout.PkScript)
+		if len(txt) < 8 {
 			continue
 		}
 
@@ -167,11 +174,11 @@ func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 		return err
 	}
 
-	parsedScriptText, isText := utils.ExtractText(parsedScriptData)
+	parsedScriptText := utils.StripNonTextBytes(parsedScriptData)
 	if err != nil {
 		return err
 	}
-	if isText {
+	if len(parsedScriptText) > 8 {
 		fmt.Printf("  - Concatenated TxOut plaintext: %v\n", string(parsedScriptText))
 	}
 

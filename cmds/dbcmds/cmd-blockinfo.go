@@ -27,19 +27,24 @@ func (cmd *BlockInfoCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	blockIndexRow, err := db.GetBlockIndexRow(cmd.blockHash)
+	blockHash, err := blockdb.HashFromString(cmd.blockHash)
 	if err != nil {
 		return err
 	}
 
-	block, err := db.GetBlock(cmd.blockHash)
+	blockIndexRow, err := db.GetBlockIndexRow(blockHash)
+	if err != nil {
+		return err
+	}
+
+	block, err := db.GetBlock(blockHash)
 	if err != nil {
 		return err
 	}
 
 	fmt.Printf("%v\n", block.Hash().String())
 	fmt.Printf("  - %v\n", block.MsgBlock().Header.Timestamp)
-	fmt.Printf("  - %v\n", blockIndexRow.Filename)
+	fmt.Printf("  - %v\n", blockIndexRow.DATFilename())
 
 	return nil
 }

@@ -3,6 +3,7 @@ package dbcmds
 import (
 	"fmt"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
@@ -30,8 +31,13 @@ func (cmd *TxChainCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	foundHashesReverse := []string{}
-	currentTxHash := cmd.txHash
+	foundHashesReverse := []chainhash.Hash{}
+
+	currentTxHash, err := blockdb.HashFromString(cmd.txHash)
+	if err != nil {
+		return err
+	}
+
 	for {
 		tx, err := db.GetTx(currentTxHash)
 		if err != nil {
@@ -41,7 +47,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 		if cmd.isSuspiciousTx(tx) {
 			foundHashesReverse = append(foundHashesReverse, currentTxHash)
 			if len(tx.MsgTx().TxIn) == 1 {
-				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash.String()
+				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
 			} else {
 				break
 			}
@@ -51,7 +57,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 	}
 
 	numHashes := len(foundHashesReverse)
-	foundHashes := make([]string, numHashes)
+	foundHashes := make([]chainhash.Hash, numHashes)
 	for i := 0; i < numHashes; i++ {
 		foundHashes[numHashes-i-1] = foundHashesReverse[i]
 	}
@@ -78,7 +84,7 @@ func (cmd *TxChainCommand) isSuspiciousTx(tx *btcutil.Tx) bool {
 	return false
 }
 
-func (cmd *TxChainCommand) writeDataFromTxs(txHashes []string, db *blockdb.BlockDB) error {
+func (cmd *TxChainCommand) writeDataFromTxs(txHashes []chainhash.Hash, db *blockdb.BlockDB) error {
 	outFile, err := utils.CreateFile("output/txchain-output")
 	if err != nil {
 		return err

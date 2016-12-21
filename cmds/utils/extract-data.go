@@ -205,16 +205,17 @@ func ExtractText(bs []byte) ([]byte, bool) {
 		end++
 	}
 
-	sublen := end - start + 1
-	if sublen < 5 {
-		return nil, false
-	}
+	// sublen := end - start + 1
+	// if sublen < 5 {
+	// 	return nil, false
+	// }
+	fmt.Println("~~~~ EXTRACT TEXT", start, end)
 
 	substr := bs[start:end]
 	return substr, true
 }
 
-func stripNonTextBytes(bs []byte) []byte {
+func StripNonTextBytes(bs []byte) []byte {
 	newBs := make([]byte, len(bs))
 	newBsLen := 0
 	for i := range bs {

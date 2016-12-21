@@ -2,11 +2,8 @@ package blockdb
 
 import (
 	"crypto/sha256"
-	// "encoding/binary"
 	"fmt"
 	"path/filepath"
-	"strconv"
-	"strings"
 
 	"github.com/boltdb/bolt"
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -37,12 +34,8 @@ func (db *BlockDB) Close() error {
 }
 
 func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
-	blockDATFiles := []string{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
-		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
-	}
-
-	for _, datFilename := range blockDATFiles {
+		datFilename := fmt.Sprintf("blk%05d.dat", i)
 		datFilepath := filepath.Join(db.datFileDir, datFilename)
 
 		fmt.Println("parsing block file", datFilepath)
@@ -52,7 +45,7 @@ func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
 			return err
 		}
 
-		err = db.writeBlockIndexToDB(blocks, datFilename)
+		err = db.writeBlockIndexToDB(blocks, i)
 		if err != nil {
 			return err
 		}
@@ -62,12 +55,8 @@ func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
 }
 
 func (db *BlockDB) IndexDATFileTransactions(startBlock, endBlock uint64) error {
-	blockDATFiles := []string{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
-		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
-	}
-
-	for _, datFilename := range blockDATFiles {
+		datFilename := fmt.Sprintf("blk%05d.dat", i)
 		datFilepath := filepath.Join(db.datFileDir, datFilename)
 
 		fmt.Println("parsing block file", datFilepath)
@@ -77,7 +66,7 @@ func (db *BlockDB) IndexDATFileTransactions(startBlock, endBlock uint64) error {
 			return err
 		}
 
-		err = db.writeBlockIndexToDB(blocks, datFilename)
+		err = db.writeBlockIndexToDB(blocks, i)
 		if err != nil {
 			return err
 		}
@@ -91,7 +80,7 @@ func (db *BlockDB) IndexDATFileTransactions(startBlock, endBlock uint64) error {
 	return nil
 }
 
-func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFilename string) error {
+func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFileIdx int) error {
 	fmt.Println("writing block metadata...")
 
 	// we break the blocks into a bunch of smaller groups because BoltDB writes much more quickly this way
@@ -106,14 +95,23 @@ func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFilename stri
 			}
 
 			for blIdx, bl := range group {
-				blockHash := bl.Hash().String()
+				row := BlockIndexRow{
+					DATFileIdx:     uint16(datFileIdx),
+					Timestamp:      bl.MsgBlock().Header.Timestamp.Unix(),
+					IndexInDATFile: uint32((g * groupLen) + blIdx),
+				}
 
-				err = bucket.Put([]byte(blockHash), []byte(fmt.Sprintf("%s:%d:%d", datFilename, (g*groupLen)+blIdx, bl.MsgBlock().Header.Timestamp.Unix())))
+				rowBytes, err := row.ToBytes()
 				if err != nil {
 					return err
 				}
 
-				fmt.Printf("finished block %v (%v) (%v/%v)\n", blockHash, bl.MsgBlock().Header.Timestamp, (g*groupLen)+blIdx+1, len(blocks))
+				err = bucket.Put(bl.Hash()[:], rowBytes)
+				if err != nil {
+					return err
+				}
+
+				fmt.Printf("finished block %v (%v) (%v/%v)\n", bl.Hash().String(), bl.MsgBlock().Header.Timestamp, (g*groupLen)+blIdx+1, len(blocks))
 			}
 
 			return nil
@@ -143,18 +141,26 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 			}
 
 			for blkIdx, bl := range group {
-				blockHash := bl.Hash().String()
 				numTxs := len(bl.Transactions())
 
 				for txIdx, tx := range bl.Transactions() {
-					txHash := tx.Hash().String()
+					row := TxIndexRow{
+						BlockHash:    *bl.Hash(),
+						IndexInBlock: uint64(txIdx),
+					}
 
-					err := bucket.Put([]byte(txHash), []byte(fmt.Sprintf("%s:%d", blockHash, txIdx)))
+					rowBytes, err := row.ToBytes()
 					if err != nil {
 						return err
 					}
 
-					fmt.Printf("finished tx %v (%v/%v) (%v/%v)\n", txHash, txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
+					err = bucket.Put(tx.Hash()[:], rowBytes)
+					if err != nil {
+						return err
+					}
+
+					fmt.Printf("finished tx %v (%v/%v) (%v/%v)\n", tx.Hash().String(), txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
+					// fmt.Printf("finished tx (%v/%v) (%v/%v)\n", txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
 				}
 			}
 
@@ -169,66 +175,7 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 	return nil
 }
 
-type (
-	BlockIndexRow struct {
-		Filename       string
-		Timestamp      int64
-		IndexInDATFile int
-	}
-
-	TxIndexRow struct {
-		BlockHash    string
-		IndexInBlock int
-	}
-)
-
-func NewBlockIndexRowFromBytes(bs []byte) (BlockIndexRow, error) {
-	parts := strings.Split(string(bs), ":")
-
-	if len(parts) != 3 {
-		return BlockIndexRow{}, fmt.Errorf("badly formatted BlockIndex value")
-	}
-
-	idx, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return BlockIndexRow{}, err
-	}
-
-	timestamp, err := strconv.ParseInt(parts[2], 10, 64)
-	if err != nil {
-		return BlockIndexRow{}, err
-	}
-
-	row := BlockIndexRow{
-		Filename:       parts[0],
-		IndexInDATFile: int(idx),
-		Timestamp:      timestamp,
-	}
-
-	return row, nil
-}
-
-func NewTxIndexRowFromBytes(bs []byte) (TxIndexRow, error) {
-	parts := strings.Split(string(bs), ":")
-
-	if len(parts) != 2 {
-		return TxIndexRow{}, fmt.Errorf("badly formatted TransactionIndex value")
-	}
-
-	txIndex, err := strconv.ParseInt(parts[1], 10, 64)
-	if err != nil {
-		return TxIndexRow{}, err
-	}
-
-	row := TxIndexRow{
-		BlockHash:    parts[0],
-		IndexInBlock: int(txIndex),
-	}
-
-	return row, nil
-}
-
-func (db *BlockDB) GetBlockIndexRow(blockHash string) (BlockIndexRow, error) {
+func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
 	var err error
 	var blockRow BlockIndexRow
 
@@ -238,9 +185,9 @@ func (db *BlockDB) GetBlockIndexRow(blockHash string) (BlockIndexRow, error) {
 			return fmt.Errorf("could not find bucket BlockIndex")
 		}
 
-		val := bucket.Get([]byte(blockHash))
+		val := bucket.Get(blockHash[:])
 		if val == nil {
-			return fmt.Errorf("could not find block %v", blockHash)
+			return fmt.Errorf("could not find block %v", blockHash.String())
 		}
 
 		blockRow, err = NewBlockIndexRowFromBytes(val)
@@ -254,13 +201,13 @@ func (db *BlockDB) GetBlockIndexRow(blockHash string) (BlockIndexRow, error) {
 	return blockRow, err
 }
 
-func (db *BlockDB) GetBlock(blockHash string) (*btcutil.Block, error) {
+func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
 	blockRow, err := db.GetBlockIndexRow(blockHash)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.Filename), blockRow.IndexInDATFile)
+	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.DATFilename()), blockRow.IndexInDATFile)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +215,7 @@ func (db *BlockDB) GetBlock(blockHash string) (*btcutil.Block, error) {
 	return block, nil
 }
 
-func (db *BlockDB) GetTxIndexRow(txHash string) (TxIndexRow, BlockIndexRow, error) {
+func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexRow, error) {
 	var err error
 	var txRow TxIndexRow
 	var blockRow BlockIndexRow
@@ -279,7 +226,7 @@ func (db *BlockDB) GetTxIndexRow(txHash string) (TxIndexRow, BlockIndexRow, erro
 			return fmt.Errorf("could not find bucket TransactionIndex")
 		}
 
-		val := bucket.Get([]byte(txHash))
+		val := bucket.Get(txHash[:])
 		if val == nil {
 			return fmt.Errorf("could not find transaction %v", txHash)
 		}
@@ -294,7 +241,7 @@ func (db *BlockDB) GetTxIndexRow(txHash string) (TxIndexRow, BlockIndexRow, erro
 			return fmt.Errorf("could not find bucket BlockIndex")
 		}
 
-		val = bucket.Get([]byte(txRow.BlockHash))
+		val = bucket.Get(txRow.BlockHash[:])
 		if val == nil {
 			return fmt.Errorf("could not find block %v", txRow.BlockHash)
 		}
@@ -314,18 +261,18 @@ func (db *BlockDB) GetTxIndexRow(txHash string) (TxIndexRow, BlockIndexRow, erro
 	return txRow, blockRow, nil
 }
 
-func (db *BlockDB) GetTx(txHash string) (*btcutil.Tx, error) {
+func (db *BlockDB) GetTx(txHash chainhash.Hash) (*btcutil.Tx, error) {
 	txRow, blockRow, err := db.GetTxIndexRow(txHash)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.Filename), blockRow.IndexInDATFile)
+	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.DATFilename()), blockRow.IndexInDATFile)
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := block.Tx(txRow.IndexInBlock)
+	tx, err := block.Tx(int(txRow.IndexInBlock))
 	if err != nil {
 		return nil, err
 	}
@@ -388,22 +335,12 @@ func (db *BlockDB) PutTxOutDuplicateData(txHashBytes []byte, data []byte) error 
 		}
 		hashedData := hasher.Sum(nil)
 
-		// var newCount uint16
 		existing := bucket.Get(hashedData)
 		if existing == nil {
-			// newCount = 1
 			existing = txHashBytes
 		} else {
-			// newCount = binary.LittleEndian.Uint16(existing) + 1
-			// fmt.Println("dupe found", newCount)
-			// numTxs := len(existing) / chainhash.HashSize
 			existing = append(existing, txHashBytes...)
 		}
-
-		// newCountBytes := make([]byte, 2)
-		// binary.LittleEndian.PutUint16(newCountBytes, newCount)
-
-		// err = bucket.Put(hashedData, newCountBytes)
 
 		err = bucket.Put(hashedData, existing)
 		return err
@@ -420,10 +357,6 @@ func (db *BlockDB) ReadTxOutDuplicateData() error {
 		}
 
 		err := bucket.ForEach(func(key []byte, val []byte) error {
-			// count := binary.LittleEndian.Uint16(val)
-			// if count > 1 {
-			// 	fmt.Println("dupe found")
-			// }
 			if len(val)%chainhash.HashSize != 0 {
 				return fmt.Errorf("value is corrupted")
 			}
@@ -436,17 +369,12 @@ func (db *BlockDB) ReadTxOutDuplicateData() error {
 
 			fmt.Printf("- %v txs sharing data:\n", numTxs)
 			for i := 0; i < numTxs; i++ {
-				txHashBytes := val[i*chainhash.HashSize : (i+1)*chainhash.HashSize]
-
-				hash := &chainhash.Hash{}
-				err := hash.SetBytes(txHashBytes)
+				txHash, err := HashFromBytes(val[i*chainhash.HashSize : (i+1)*chainhash.HashSize])
 				if err != nil {
 					return err
 				}
 
-				txHash := hash.String()
-
-				fmt.Printf("  - %v\n", txHash)
+				fmt.Printf("  - %v\n", txHash.String())
 			}
 
 			return nil
