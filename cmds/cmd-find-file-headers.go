@@ -8,10 +8,22 @@ import (
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
-func FindFileHeaders(startBlock, endBlock uint64, inDir, outDir string) error {
-	outSubdir := filepath.Join(".", outDir, "find-file-headers")
+type FindFileHeadersCommand struct {
+	startBlock, endBlock uint64
+	datFileDir, outDir   string
+}
 
-	err := os.MkdirAll(outSubdir, 0777)
+func NewFindFileHeadersCommand(startBlock, endBlock uint64, datFileDir, outDir string) *FindFileHeadersCommand {
+	return &FindFileHeadersCommand{
+		startBlock: startBlock,
+		endBlock:   endBlock,
+		datFileDir: datFileDir,
+		outDir:     filepath.Join(".", outDir, "find-file-headers"),
+	}
+}
+
+func (cmd *FindFileHeadersCommand) RunCommand() error {
+	err := os.MkdirAll(cmd.outDir, 0777)
 	if err != nil {
 		return err
 	}
@@ -24,20 +36,20 @@ func FindFileHeaders(startBlock, endBlock uint64, inDir, outDir string) error {
 		}
 	}()
 
-	// start a goroutine for each .dat file being parsed
+	// start a goroutine for each .dat file being parsed, limited to 5 at a time
 	chDones := []chan bool{}
 	procLimiter := make(chan bool, 5)
 	for i := 0; i < 5; i++ {
 		procLimiter <- true
 	}
 
-	for i := int(startBlock); i < int(endBlock)+1; i++ {
+	for i := int(cmd.startBlock); i < int(cmd.endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go findFileHeadersParseBlock(inDir, outSubdir, i, chErr, chDone, procLimiter)
 		chDones = append(chDones, chDone)
+		go cmd.parseBlock(i, chErr, chDone, procLimiter)
 	}
 
-	// wait for all ops to complete
+	// wait for all goroutines to complete
 	for _, chDone := range chDones {
 		<-chDone
 	}
@@ -48,7 +60,7 @@ func FindFileHeaders(startBlock, endBlock uint64, inDir, outDir string) error {
 	return nil
 }
 
-func findFileHeadersParseBlock(inDir string, outDir string, blockFileNum int, chErr chan error, chDone chan bool, procLimiter chan bool) {
+func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error, chDone chan bool, procLimiter chan bool) {
 	defer close(chDone)
 	defer func() { procLimiter <- true }()
 	<-procLimiter
@@ -56,13 +68,13 @@ func findFileHeadersParseBlock(inDir string, outDir string, blockFileNum int, ch
 	filename := fmt.Sprintf("blk%05d.dat", blockFileNum)
 	fmt.Println("parsing block", filename)
 
-	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(inDir, filename))
+	blocks, err := utils.LoadBlocksFromDAT(filepath.Join(cmd.datFileDir, filename))
 	if err != nil {
 		chErr <- err
 		return
 	}
 
-	outFile := utils.NewConditionalFile(filepath.Join(outDir, fmt.Sprintf("blk%05d-file-headers.txt", blockFileNum)))
+	outFile := utils.NewConditionalFile(filepath.Join(cmd.outDir, fmt.Sprintf("blk%05d-file-headers.txt", blockFileNum)))
 	defer outFile.Close()
 
 	// write CSV header
