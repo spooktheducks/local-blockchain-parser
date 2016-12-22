@@ -17,6 +17,7 @@
         - TxOut scripts raw byte data
         - TxOut scripts raw byte data, "Satoshi encoded" (i.e., with length+checksum prefix)
         - TxOut scripts interpreted as hex (or scraped for valid hex values)
+- [ ] Make some command-line options for the `opreturns` and `find-plaintext` subcommands to limit the amount of output data (especially in the CSV file)
 
 
 ## done
