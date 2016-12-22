@@ -31,20 +31,42 @@ func (cmd *TxChainCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	foundHashesReverse := []chainhash.Hash{}
-
-	currentTxHash, err := blockdb.HashFromString(cmd.txHash)
+	startHash, err := blockdb.HashFromString(cmd.txHash)
 	if err != nil {
 		return err
 	}
 
+	foundHashes1, err := cmd.CrawlBackwards(startHash, db)
+	if err != nil {
+		return err
+	}
+
+	foundHashes2, err := cmd.CrawlForwards(startHash, db)
+	if err != nil {
+		return err
+	}
+
+	// both foundHashes1 and foundHashes2 contain startHash, so we omit it from one of them
+	foundHashes := append(foundHashes1, foundHashes2[1:]...)
+
+	err = cmd.writeDataFromTxs(foundHashes, db)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cmd *TxChainCommand) CrawlBackwards(startHash chainhash.Hash, db *blockdb.BlockDB) ([]chainhash.Hash, error) {
+	foundHashesReverse := []chainhash.Hash{}
+	currentTxHash := startHash
 	for {
 		tx, err := db.GetTx(currentTxHash)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
-		if cmd.isSuspiciousTx(tx) {
+		if cmd.txHasSuspiciousOutputValues(tx) {
 			foundHashesReverse = append(foundHashesReverse, currentTxHash)
 			if len(tx.MsgTx().TxIn) == 1 {
 				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
@@ -62,15 +84,51 @@ func (cmd *TxChainCommand) RunCommand() error {
 		foundHashes[numHashes-i-1] = foundHashesReverse[i]
 	}
 
-	err = cmd.writeDataFromTxs(foundHashes, db)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return foundHashes, nil
 }
 
-func (cmd *TxChainCommand) isSuspiciousTx(tx *btcutil.Tx) bool {
+func (cmd *TxChainCommand) CrawlForwards(startHash chainhash.Hash, db *blockdb.BlockDB) ([]chainhash.Hash, error) {
+	foundHashes := []chainhash.Hash{}
+	currentTxHash := startHash
+	for {
+		tx, err := db.GetTx(currentTxHash)
+		if err != nil {
+			return nil, err
+		}
+
+		if cmd.txHasSuspiciousOutputValues(tx) {
+			foundHashes = append(foundHashes, currentTxHash)
+
+			maxValueTxoutIdx := cmd.findMaxValueTxOut(tx)
+
+			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
+			spentTxOut, err := db.GetSpentTxOut(key)
+			if err != nil {
+				return nil, err
+			}
+
+			currentTxHash = spentTxOut.InputTxHash
+
+		} else {
+			break
+		}
+	}
+	return foundHashes, nil
+}
+
+func (cmd *TxChainCommand) findMaxValueTxOut(tx *btcutil.Tx) int {
+	var maxValue int64
+	var maxValueIdx int
+	for txoutIdx, txout := range tx.MsgTx().TxOut {
+		if txout.Value > maxValue {
+			maxValue = txout.Value
+			maxValueIdx = txoutIdx
+		}
+	}
+	return maxValueIdx
+}
+
+func (cmd *TxChainCommand) txHasSuspiciousOutputValues(tx *btcutil.Tx) bool {
 	numTinyValues := 0
 	for _, txout := range tx.MsgTx().TxOut {
 		if utils.SatoshisToBTCs(txout.Value) == 0.00000001 {
