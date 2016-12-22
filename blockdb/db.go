@@ -19,6 +19,13 @@ type (
 	}
 )
 
+const (
+	BucketBlockIndex       = "BlockIndex"
+	BucketTransactionIndex = "TransactionIndex"
+	BucketTxOutDupes       = "TxOutDupes"
+	BucketSpentTxOuts      = "SpentTxOuts"
+)
+
 func NewBlockDB(dbFilename string, datFileDir string) (*BlockDB, error) {
 	// open the BoltDB file
 	store, err := bolt.Open(dbFilename, 0600, nil)
@@ -89,7 +96,7 @@ func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFileIdx int) 
 
 	for g, group := range blockGroups {
 		err := db.store.Update(func(boltTx *bolt.Tx) error {
-			bucket, err := boltTx.CreateBucketIfNotExists([]byte("BlockIndex"))
+			bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketBlockIndex))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
@@ -135,7 +142,7 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 
 	for g, group := range blockGroups {
 		err := db.store.Update(func(boltTx *bolt.Tx) error {
-			bucket, err := boltTx.CreateBucketIfNotExists([]byte("TransactionIndex"))
+			bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketTransactionIndex))
 			if err != nil {
 				return fmt.Errorf("create bucket: %s", err)
 			}
@@ -180,7 +187,7 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 	var blockRow BlockIndexRow
 
 	err = db.store.View(func(boltTx *bolt.Tx) error {
-		bucket := boltTx.Bucket([]byte("BlockIndex"))
+		bucket := boltTx.Bucket([]byte(BucketBlockIndex))
 		if bucket == nil {
 			return fmt.Errorf("could not find bucket BlockIndex")
 		}
@@ -221,7 +228,7 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 	var blockRow BlockIndexRow
 
 	err = db.store.View(func(boltTx *bolt.Tx) error {
-		bucket := boltTx.Bucket([]byte("TransactionIndex"))
+		bucket := boltTx.Bucket([]byte(BucketTransactionIndex))
 		if bucket == nil {
 			return fmt.Errorf("could not find bucket TransactionIndex")
 		}
@@ -236,7 +243,7 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 			return err
 		}
 
-		bucket = boltTx.Bucket([]byte("BlockIndex"))
+		bucket = boltTx.Bucket([]byte(BucketBlockIndex))
 		if bucket == nil {
 			return fmt.Errorf("could not find bucket BlockIndex")
 		}
@@ -322,7 +329,7 @@ func (db *BlockDB) PutTxOutDuplicateData(txHash chainhash.Hash, data []byte) err
 	// }
 
 	err := db.store.Update(func(boltTx *bolt.Tx) error {
-		bucket, err := boltTx.CreateBucketIfNotExists([]byte("TxOutDupes"))
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketTxOutDupes))
 		if err != nil {
 			return err
 		}
@@ -350,7 +357,7 @@ func (db *BlockDB) PutTxOutDuplicateData(txHash chainhash.Hash, data []byte) err
 
 func (db *BlockDB) ReadTxOutDuplicateData() error {
 	err := db.store.View(func(boltTx *bolt.Tx) error {
-		bucket := boltTx.Bucket([]byte("TxOutDupes"))
+		bucket := boltTx.Bucket([]byte(BucketTxOutDupes))
 		if bucket == nil {
 			return nil
 		}
@@ -423,7 +430,7 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 
 func (db *BlockDB) PutSpentTxOut(key SpentTxOutKey, val SpentTxOutRow) error {
 	err := db.store.Update(func(boltTx *bolt.Tx) error {
-		bucket, err := boltTx.CreateBucketIfNotExists([]byte("SpentTxOuts"))
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketSpentTxOuts))
 		if err != nil {
 			return err
 		}
@@ -452,7 +459,7 @@ func (db *BlockDB) PutSpentTxOut(key SpentTxOutKey, val SpentTxOutRow) error {
 func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 	var row SpentTxOutRow
 	err := db.store.View(func(boltTx *bolt.Tx) error {
-		bucket := boltTx.Bucket([]byte("SpentTxOuts"))
+		bucket := boltTx.Bucket([]byte(BucketSpentTxOuts))
 		if bucket == nil {
 			return fmt.Errorf("can't find bucket SpentTxOuts")
 		}
