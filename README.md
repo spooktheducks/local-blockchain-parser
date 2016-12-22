@@ -33,6 +33,9 @@ Either rename the executable to `local-blockchain-parser` or use the existing ex
         - <https://storage.googleapis.com/golang/go1.7.4.darwin-amd64.pkg>
 - Run `./init.sh` to set up the project (this will build and install the binary into your `$PATH`)
 
+- Quick setup: (requires Go and git installed)
+`curl https://raw.githubusercontent.com/WikiLeaksFreedomForce/local-blockchain-parser/master/setup.sh  | bash`
+
 
 ## Usage
 

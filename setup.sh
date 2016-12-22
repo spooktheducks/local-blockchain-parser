@@ -20,4 +20,6 @@ if [ -z ${GOPATH+x} ]
 		cd ${PROJECT_NAMESPACE}${PROJECT}
 		godep go build
 		echo "build success"
+		godep go install
+		echo "installed to ${GOPATH}/bin - please make sure this is included in your \${PATH}"
 fi
