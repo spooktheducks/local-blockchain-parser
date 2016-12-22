@@ -20,7 +20,7 @@ func NewFindPlaintextCommand(startBlock, endBlock uint64, inDir, outDir string) 
 		startBlock: startBlock,
 		endBlock:   endBlock,
 		inDir:      inDir,
-		outDir:     filepath.Join(outDir, "search-plaintext"),
+		outDir:     filepath.Join(outDir, "find-plaintext"),
 	}
 }
 
@@ -38,12 +38,13 @@ func (cmd *FindPlaintextCommand) RunCommand() error {
 		}
 	}()
 
-	// start a goroutine for each .dat file being parsed
-	chDones := []chan bool{}
+	// start a goroutine for each .dat file being parsed (limited to 5 at a time)
 	procLimiter := make(chan bool, 5)
 	for i := 0; i < 5; i++ {
 		procLimiter <- true
 	}
+
+	chDones := []chan bool{}
 	for i := int(cmd.startBlock); i < int(cmd.endBlock)+1; i++ {
 		chDone := make(chan bool)
 		go cmd.parseBlock(i, chErr, chDone, procLimiter)

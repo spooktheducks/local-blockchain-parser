@@ -11,14 +11,22 @@ Two options:
 
 ### Install a pre-built executable for your platform
 
-- **Windows (amd64):** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.4/local-blockchain-parser-windowsamd64.exe>
-- **Windows (386):** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.4/local-blockchain-parser-windows386.exe>
-- **Linux:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.4/local-blockchain-parser-linuxamd64>
-- **OSX:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.4/local-blockchain-parser-osxamd64>
+- **Windows (amd64):** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.5/local-blockchain-parser-windowsamd64.exe>
+- **Windows (386):** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.5/local-blockchain-parser-windows386.exe>
+- **Linux:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.5/local-blockchain-parser-linuxamd64>
+- **OSX:** <https://github.com/WikiLeaksFreedomForce/local-blockchain-parser/releases/download/0.1.5/local-blockchain-parser-osxamd64>
 
 Either rename the executable to `local-blockchain-parser` or use the existing executable name for the commands listed below under "Usage".
 
 ### Build/install from source
+
+If you already have Go and `git` installed, just run the following command in the terminal:
+
+```sh
+curl https://raw.githubusercontent.com/WikiLeaksFreedomForce/local-blockchain-parser/master/setup.sh  | bash
+```
+
+If you do not have Go installed, here are some instructions:
 
 - Install Go (see <https://golang.org/doc/install> for more information)
     - Windows
@@ -31,67 +39,85 @@ Either rename the executable to `local-blockchain-parser` or use the existing ex
         - `mkdir $HOME/go`
     - OS X / macOS
         - <https://storage.googleapis.com/golang/go1.7.4.darwin-amd64.pkg>
-- Run `./init.sh` to set up the project (this will build and install the binary into your `$PATH`)
-
-- Quick setup: (requires Go and git installed)
-`curl https://raw.githubusercontent.com/WikiLeaksFreedomForce/local-blockchain-parser/master/setup.sh  | bash`
+- Run `./init.sh` to set up the `local-blockchain-parser` project (this will build and install the binary into your `$PATH`).
 
 
 ## Usage
 
-Acquire some blockchain `.dat` files: <https://mega.nz/#!Y0g3TZxZ!Dgx9bew6hx7gT2s1vE1SRFBjWETOh6HjccC9YL4DH5s>
+Acquire some blockchain `.dat` files:
 
-Put them in a folder called `data` in this repo.
+- Here are some .dat files to use with the instructions below: <https://mega.nz/#!BkJB3KhI!wuL3Zr_3XNHAgVTiZnWwOLSDz9JnbEkOeULBnlId_JQ>
+- You can also use the .dat files downloaded by [Bitcoin Core](https://bitcoin.org/en/download).
 
-Assuming you have a single .dat file called `blk00689.dat` in your `data` folder, you can run one of the following commands:
+For the following examples, we assume that you put the .dat files in a folder called `data` in this repo.  Note, however, that you can provide a `--datFileDir` argument to any command, specifying a different location.
 
+Assuming you have a single .dat file called `blk00052.dat` in your `data` folder, you can run one of the following commands:
 
-### Identifying "satoshi downloader"-style encoded data
-
-This is based on the encoding/decoding method from the satoshi python scripts used for cablegate.
+### 1. Build the block index
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 opreturns
+local-blockchain-parser builddb blocks --datFileDir ./data --startBlock 52 --endBlock 53
 ```
 
-Each time the program finds non-`OP_` tokens in the TxOut scripts, it will create a .dat file containing the raw bytes from the associated data field (the data is concatenated across all TxOuts for the given transaction).
+This will index the blocks contained in blk00052.dat and blk00053.dat (note that you can give the same number for `startBlock` and `endBlock` if you only want to index a single .dat file).
 
-As the program runs, it will print to the console when it finds data that matches a known file header or footer (jpeg, pdf, etc.).  For example:
+Once the index is built, you can ask it about any block contained in the .dat files you indexed:
 
+```sh
+local-blockchain-parser querydb block-info --datFileDir ./data 000000000000015c28163515610010a24f6469e7741f83a9186393ff25bb8637
 ```
-- file header match (type: pdf) (block hash: 00000000000000ecbbff6bafb7efa2f7df05b227d5c73dca8f2635af32a2e949) (tx hash: 54e48e5f5c656b26c3bca14a8c95aa583d07ebe84dde3b7dd4a78f4e4186e713)
-- file footer match (type: pdf) (block hash: 00000000000000ecbbff6bafb7efa2f7df05b227d5c73dca8f2635af32a2e949) (tx hash: 54e48e5f5c656b26c3bca14a8c95aa583d07ebe84dde3b7dd4a78f4e4186e713)
+
+(where `000000000000015c28163515610010a24f6469e7741f83a9186393ff25bb8637` is the block hash you want to query).
+
+This gives some basic, rudimentary information about the block.
+
+### 2. Build the transaction index
+
+```sh
+local-blockchain-parser builddb transactions --datFileDir ./data --startBlock 52 --endBlock 53
 ```
 
-You can verify this file by renaming `./output/op-returns/00000000000000ecbbff6bafb7efa2f7df05b227d5c73dca8f2635af32a2e949/txouts-combined-54e48e5f5c656b26c3bca14a8c95aa583d07ebe84dde3b7dd4a78f4e4186e713.dat` to `blah.pdf` and trying to open it in a regular PDF viewer.
+Once the index is built, you can ask it about any transaction contained in the .dat files you indexed:
 
-Not everything will be detected by the magic header/footer search.  If you run `./scan-opreturn-data.sh` in this repo after running this command, it will try to identify all valid files among the output using the `file` command.
+```sh
+local-blockchain-parser querydb tx-info --datFileDir ./data 5c593b7b71063a01f4128c98e36fb407b00a87454e67b39ad5f8820ebc1b2ad5
+```
+
+(where `5c593b7b71063a01f4128c98e36fb407b00a87454e67b39ad5f8820ebc1b2ad5` is the transaction hash you want to query).
+
+This will run the full suite of "transaction checks" that look inside transactions for hidden data.  It currently searches for plaintext, known file headers, PGP keys, Satoshi-encoded data.  If you're querying the transaction given in the example above, the tool should report that it found a `7z header`.
+
+### 3. Decode the Cablegate files from the blockchain
+
+You can do this with only blk00052.dat.  You have to build the block + transaction indices as explained in the examples above.
+
+```sh
+local-blockchain-parser querydb tx-chain --datFileDir ./data 2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8
+```
+
+You will notice that an `output` folder has been created.  A file called `txchain-output` is in this folder.  Rename that file to `cablegate.7z` and unzip it with a 7zip extractor.  Tada, you have the entire cablegate release.
+
+The transaction hash you have to specify for this command can be any transaction in the cablegate release.  The tool will crawl forwards and backwards through the relevant transactions and combine all of the data it finds.
+
+
+## Other commands
 
 ### Searching for plaintext encoded into the blockchain
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 search-plaintext
+$ local-blockchain-parser find-plaintext --datFileDir ./data --startBlock 52 --endBlock 52
 ```
 
-Output will be generated to `./output/search-plaintext/*.csv`.
+This command generates a lot of false positives (and therefore, a LOT of output).  We're working on improving it.
+
+Output will be generated to `./output/find-plaintext/*.csv`.
 
 
-### Other subcommands
-
-Identify all possible `OP_` code patterns (in TxIn/TxOut scripts):
+### Searching for known file headers encoded into the blockchain
 
 ```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 script-patterns
+$ local-blockchain-parser find-file-headers --datFileDir ./data --startBlock 52 --endBlock 52
 ```
 
-Viewing transaction scripts as strings (script strings will be dumped as .txt files):
-
-```sh
-$ local-blockchain-parser --inDir ./data --startBlock 689 --endBlock 689 scripts
-```
-
-
-## Output
-
-Output files will be located in the `output` subdirectory (unless you specified an `--outDir` param).
+Output will be generated to `./output/find-file-headers/*.txt`.
 

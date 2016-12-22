@@ -167,12 +167,12 @@ func main() {
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-				cli.StringFlag{Name: "inDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+				cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
 				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 			},
 			Action: func(c *cli.Context) error {
-				startBlock, endBlock, inDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("inDir"), c.String("outDir")
-				cmd := cmds.NewFindPlaintextCommand(startBlock, endBlock, inDir, outDir)
+				startBlock, endBlock, datFileDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("outDir")
+				cmd := cmds.NewFindPlaintextCommand(startBlock, endBlock, datFileDir, outDir)
 				return cmd.RunCommand()
 			},
 		},
@@ -182,12 +182,12 @@ func main() {
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-				cli.StringFlag{Name: "inDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+				cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
 				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 			},
 			Action: func(c *cli.Context) error {
-				startBlock, endBlock, inDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("inDir"), c.String("outDir")
-				return cmds.FindFileHeaders(startBlock, endBlock, inDir, outDir)
+				startBlock, endBlock, datFileDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("outDir")
+				return cmds.FindFileHeaders(startBlock, endBlock, datFileDir, outDir)
 			},
 		},
 
@@ -196,12 +196,12 @@ func main() {
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-				cli.StringFlag{Name: "inDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+				cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
 				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 			},
 			Action: func(c *cli.Context) error {
-				startBlock, endBlock, inDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("inDir"), c.String("outDir")
-				return cmds.PrintOpReturns(startBlock, endBlock, inDir, outDir)
+				startBlock, endBlock, datFileDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("outDir")
+				return cmds.PrintOpReturns(startBlock, endBlock, datFileDir, outDir)
 			},
 		},
 	}

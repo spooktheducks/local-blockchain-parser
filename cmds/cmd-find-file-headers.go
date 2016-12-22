@@ -9,7 +9,7 @@ import (
 )
 
 func FindFileHeaders(startBlock, endBlock uint64, inDir, outDir string) error {
-	outSubdir := filepath.Join(".", outDir, "file-headers")
+	outSubdir := filepath.Join(".", outDir, "find-file-headers")
 
 	err := os.MkdirAll(outSubdir, 0777)
 	if err != nil {
