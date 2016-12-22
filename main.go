@@ -66,7 +66,59 @@ func main() {
 					},
 				},
 				{
-					Name: "build-dupes-index",
+					Name: "duplicates",
+					Flags: []cli.Flag{
+						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+					},
+					Action: func(c *cli.Context) error {
+						datFileDir, dbFile := c.String("datFileDir"), c.String("dbFile")
+						cmd := dbcmds.NewScanDupesIndexCommand(datFileDir, dbFile)
+						return cmd.RunCommand()
+					},
+				},
+			},
+		},
+
+		{
+			Name: "builddb",
+			Subcommands: []cli.Command{
+				{
+					Name: "blocks",
+					Flags: []cli.Flag{
+						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+					},
+					Action: func(c *cli.Context) error {
+						startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
+						cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile, "blocks")
+						if err != nil {
+							return err
+						}
+						return cmd.RunCommand()
+					},
+				},
+				{
+					Name: "transactions",
+					Flags: []cli.Flag{
+						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+					},
+					Action: func(c *cli.Context) error {
+						startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
+						cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile, "transactions")
+						if err != nil {
+							return err
+						}
+						return cmd.RunCommand()
+					},
+				},
+				{
+					Name: "duplicates",
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
@@ -80,19 +132,7 @@ func main() {
 					},
 				},
 				{
-					Name: "find-dupes",
-					Flags: []cli.Flag{
-						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
-					},
-					Action: func(c *cli.Context) error {
-						datFileDir, dbFile := c.String("datFileDir"), c.String("dbFile")
-						cmd := dbcmds.NewScanDupesIndexCommand(datFileDir, dbFile)
-						return cmd.RunCommand()
-					},
-				},
-				{
-					Name: "build-spent-txout-index",
+					Name: "spent-txouts",
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
@@ -105,25 +145,6 @@ func main() {
 						return cmd.RunCommand()
 					},
 				},
-			},
-		},
-
-		{
-			Name: "builddb",
-			Flags: []cli.Flag{
-				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
-				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-				cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
-				cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
-			},
-			Action: func(c *cli.Context) error {
-				startBlock, endBlock, datFileDir, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("dbFile")
-				indexWhat := c.Args().Get(0)
-				cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, datFileDir, dbFile, indexWhat)
-				if err != nil {
-					return err
-				}
-				return cmd.RunCommand()
 			},
 		},
 
@@ -190,71 +211,4 @@ func main() {
 		fmt.Println(err)
 		return
 	}
-
-	// flag.Parse()
-
-	// if *flagInDir == "" {
-	// 	panic("Missing --inDir param")
-	// } else if *flagEndBlock == 0 {
-	// 	panic("Must specify --endBlock param")
-	// }
-
-	// cmd := flag.Arg(0)
-
-	// startBlock := uint64(*flagStartBlock)
-	// endBlock := uint64(*flagEndBlock)
-
-	// switch cmd {
-	// case "querydb":
-	// 	cmd := cmds.NewQueryBlockDBCommand("output/blockdb", flag.Args())
-	// 	err := cmd.RunCommand()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "opreturns":
-	// 	err := cmds.PrintOpReturns(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "scripts":
-	// 	err := cmds.PrintBlockScripts(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "script-patterns":
-	// 	err := cmds.CheckScriptPatterns(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "build-blockdb":
-	// 	cmd, err := cmds.NewBuildBlockDBCommand(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// 	err = cmd.RunCommand()
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "suspicious-txs":
-	// 	err := cmds.FindSuspiciousTxs(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// case "search-plaintext":
-	// 	err := cmds.SearchForPlaintext(startBlock, endBlock, *flagInDir, *flagOutDir)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-
-	// default:
-	// 	panic("unknown subcommand '" + cmd + "'")
-	// }
-
 }
