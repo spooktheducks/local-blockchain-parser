@@ -102,10 +102,23 @@ The transaction hash you have to specify for this command can be any transaction
 
 ## Other commands
 
+### Finding transactions with duplicate data
+
+If a person wants to set up a robust, reliable DMS (dead man's switch) mechanism, it makes sense to have the DMS activate multiple times.  In terms of a DMS based on the blockchain, that means sending multiple transactions containing the same data.
+
+To check transactions for duplicate data, run the following commands:
+
+```sh
+local-blockchain-parser builddb duplicates --datFileDir ./data --startBlock 52 --endBlock 53
+local-blockchain-parser querydb duplicates --datFileDir ./data
+```
+
+Note that the first command (indexing the duplicates) will take quite a while, and will produce a large .db file on disk.  The output of the second command will be printed to the screen rather than into a text file.
+
 ### Searching for plaintext encoded into the blockchain
 
 ```sh
-$ local-blockchain-parser find-plaintext --datFileDir ./data --startBlock 52 --endBlock 52
+local-blockchain-parser find-plaintext --datFileDir ./data --startBlock 52 --endBlock 52
 ```
 
 This command generates a lot of false positives (and therefore, a LOT of output).  We're working on improving it.
@@ -116,7 +129,7 @@ Output will be generated to `./output/find-plaintext/*.csv`.
 ### Searching for known file headers encoded into the blockchain
 
 ```sh
-$ local-blockchain-parser find-file-headers --datFileDir ./data --startBlock 52 --endBlock 52
+local-blockchain-parser find-file-headers --datFileDir ./data --startBlock 52 --endBlock 52
 ```
 
 Output will be generated to `./output/find-file-headers/*.txt`.
