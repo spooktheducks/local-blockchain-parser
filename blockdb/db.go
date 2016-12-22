@@ -305,14 +305,7 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 
 		for _, bl := range blocks {
 			for _, tx := range bl.Transactions() {
-				// txHashBytes := tx.Hash().CloneBytes()
-
-				data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
-				if err != nil {
-					return err
-				}
-
-				err = db.PutTxOutDuplicateData(*tx.Hash(), data)
+				err = db.PutTxOutDuplicateData(tx)
 				if err != nil {
 					return err
 				}
@@ -323,29 +316,30 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 	return nil
 }
 
-func (db *BlockDB) PutTxOutDuplicateData(txHash chainhash.Hash, data []byte) error {
-	// if len(txHashBytes) != chainhash.HashSize {
-	// 	return fmt.Errorf("txHashBytes must be %v bytes long", chainhash.HashSize)
-	// }
+func (db *BlockDB) PutTxOutDuplicateData(tx *btcutil.Tx) error {
+	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	if err != nil {
+		return err
+	}
 
-	err := db.store.Update(func(boltTx *bolt.Tx) error {
+	hasher := sha256.New()
+	_, err = hasher.Write(data)
+	if err != nil {
+		return err
+	}
+	hashedData := hasher.Sum(nil)
+
+	err = db.store.Update(func(boltTx *bolt.Tx) error {
 		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketTxOutDupes))
 		if err != nil {
 			return err
 		}
 
-		hasher := sha256.New()
-		_, err = hasher.Write(data)
-		if err != nil {
-			return err
-		}
-		hashedData := hasher.Sum(nil)
-
 		existing := bucket.Get(hashedData)
 		if existing == nil {
-			existing = txHash[:]
+			existing = tx.Hash()[:]
 		} else {
-			existing = append(existing, txHash[:]...)
+			existing = append(existing, tx.Hash()[:]...)
 		}
 
 		err = bucket.Put(hashedData, existing)
@@ -355,7 +349,39 @@ func (db *BlockDB) PutTxOutDuplicateData(txHash chainhash.Hash, data []byte) err
 	return err
 }
 
-func (db *BlockDB) ReadTxOutDuplicateData() error {
+func (db *BlockDB) GetTxOutDuplicateData(txHash chainhash.Hash) ([]chainhash.Hash, error) {
+	tx, err := db.GetTx(txHash)
+	if err != nil {
+		return nil, err
+	}
+
+	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	hasher := sha256.New()
+	_, err = hasher.Write(data)
+	if err != nil {
+		return nil, err
+	}
+	hashedData := hasher.Sum(nil)
+
+	var txListBytes []byte
+	err = db.store.View(func(boltTx *bolt.Tx) error {
+		bucket := boltTx.Bucket([]byte(BucketTxOutDupes))
+		if bucket == nil {
+			return nil
+		}
+
+		txListBytes = bucket.Get(hashedData)
+		return nil
+	})
+
+	return DecodeHashList(txListBytes)
+}
+
+func (db *BlockDB) ScanTxOutDuplicateData() error {
 	err := db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketTxOutDupes))
 		if bucket == nil {
@@ -363,23 +389,17 @@ func (db *BlockDB) ReadTxOutDuplicateData() error {
 		}
 
 		err := bucket.ForEach(func(key []byte, val []byte) error {
-			if len(val)%chainhash.HashSize != 0 {
-				return fmt.Errorf("value is corrupted")
+			txList, err := DecodeHashList(val)
+			if err != nil {
+				return err
 			}
 
-			numTxs := len(val) / chainhash.HashSize
-
-			if numTxs == 1 {
+			if len(txList) == 0 {
 				return nil
 			}
 
-			fmt.Printf("- %v txs sharing data:\n", numTxs)
-			for i := 0; i < numTxs; i++ {
-				txHash, err := HashFromBytes(val[i*chainhash.HashSize : (i+1)*chainhash.HashSize])
-				if err != nil {
-					return err
-				}
-
+			fmt.Printf("- %v txs sharing data:\n", len(txList))
+			for _, txHash := range txList {
 				fmt.Printf("  - %v\n", txHash.String())
 			}
 
@@ -422,7 +442,6 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 				}
 			}
 		}
-
 	}
 
 	return nil

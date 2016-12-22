@@ -23,7 +23,7 @@ func (cmd *ScanDupesIndexCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	err = db.ReadTxOutDuplicateData()
+	err = db.ScanTxOutDuplicateData()
 	if err != nil {
 		return err
 	}
