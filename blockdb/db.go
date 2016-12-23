@@ -189,7 +189,7 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 	err = db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketBlockIndex))
 		if bucket == nil {
-			return fmt.Errorf("could not find bucket BlockIndex")
+			return DataNotIndexedError{Index: "blocks"}
 		}
 
 		val := bucket.Get(blockHash[:])
@@ -230,7 +230,7 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 	err = db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketTransactionIndex))
 		if bucket == nil {
-			return fmt.Errorf("could not find bucket TransactionIndex")
+			return DataNotIndexedError{Index: "transactions"}
 		}
 
 		val := bucket.Get(txHash[:])
@@ -371,7 +371,7 @@ func (db *BlockDB) GetTxOutDuplicateData(txHash chainhash.Hash) ([]chainhash.Has
 	err = db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketTxOutDupes))
 		if bucket == nil {
-			return nil
+			return DataNotIndexedError{Index: "duplicates"}
 		}
 
 		txListBytes = bucket.Get(hashedData)
@@ -385,7 +385,7 @@ func (db *BlockDB) ScanTxOutDuplicateData() error {
 	err := db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketTxOutDupes))
 		if bucket == nil {
-			return nil
+			return DataNotIndexedError{Index: "duplicates"}
 		}
 
 		err := bucket.ForEach(func(key []byte, val []byte) error {
@@ -480,7 +480,7 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 	err := db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketSpentTxOuts))
 		if bucket == nil {
-			return fmt.Errorf("can't find bucket SpentTxOuts")
+			return DataNotIndexedError{Index: "spent-txouts"}
 		}
 
 		keyBytes, err := key.ToBytes()
