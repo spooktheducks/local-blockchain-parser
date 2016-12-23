@@ -187,7 +187,8 @@ func main() {
 			},
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, datFileDir, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("datFileDir"), c.String("outDir")
-				return cmds.FindFileHeaders(startBlock, endBlock, datFileDir, outDir)
+				cmd := cmds.NewFindFileHeadersCommand(startBlock, endBlock, datFileDir, outDir)
+				return cmd.RunCommand()
 			},
 		},
 

@@ -52,19 +52,9 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
 
-	for txoutIdx := range tx.MsgTx().TxOut {
-		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
-
-		spentTxOut, err := db.GetSpentTxOut(key)
-		if err != nil {
-			if strings.Contains(err.Error(), "can't find SpentTxOut") {
-				fmt.Printf("  - TxOut %v: unspent\n", txoutIdx)
-				continue
-			}
-			return err
-		}
-
-		fmt.Printf("  - TxOut %v: spent by %v (%v)\n", txoutIdx, spentTxOut.InputTxHash.String(), spentTxOut.TxInIndex)
+	err = cmd.printOutputsSpentUnspent(db, tx)
+	if err != nil {
+		return err
 	}
 
 	err = cmd.findPlaintext(tx)
@@ -90,25 +80,50 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	return nil
 }
 
+func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcutil.Tx) error {
+	for txoutIdx := range tx.MsgTx().TxOut {
+		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
+
+		spentTxOut, err := db.GetSpentTxOut(key)
+		if err != nil {
+			if strings.Contains(err.Error(), "can't find SpentTxOut") {
+				fmt.Printf("  - TxOut %v: unspent\n", txoutIdx)
+				continue
+			}
+			return err
+		}
+
+		fmt.Printf("  - TxOut %v: spent by %v (%v)\n", txoutIdx, spentTxOut.InputTxHash.String(), spentTxOut.TxInIndex)
+	}
+	return nil
+}
+
 func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
 	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
 
-	data, err = utils.GetSatoshiEncodedData(data)
+	isSatoshi := false
+	satoshiData, err := utils.GetSatoshiEncodedData(data)
 	if err != nil {
-		return nil
+		// ignore
+	} else {
+		isSatoshi = true
+		data = satoshiData
 	}
 
 	reader := packet.NewReader(bytes.NewReader(data))
 	for {
 		packet, err := reader.Next()
 		if err != nil {
-			// return err
 			break
 		}
-		fmt.Printf("  - GPG packet: %+v\n", packet)
+		if isSatoshi {
+			fmt.Printf("  - GPG packet (satoshi-encoded): %+v\n", packet)
+		} else {
+			fmt.Printf("  - GPG packet: %+v\n", packet)
+		}
 	}
 
 	return nil
@@ -163,7 +178,6 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 	// extract text from each TxIn scriptSig
 	for txinIdx, txin := range tx.MsgTx().TxIn {
-		// fmt.Println(string(utils.StripNonTextBytes(txin.SignatureScript)))
 		txt := utils.StripNonTextBytes(txin.SignatureScript)
 		if len(txt) < 8 {
 			continue
@@ -174,7 +188,6 @@ func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 
 	// extract text from each TxOut PkScript
 	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		// fmt.Println(string(utils.StripNonTextBytes(txout.PkScript)))
 		txt := utils.StripNonTextBytes(txout.PkScript)
 		if len(txt) < 8 {
 			continue

@@ -245,3 +245,29 @@ func isValidPlaintextByte(x byte) bool {
 
 	return false
 }
+
+func FindMaxValueTxOut(tx *btcutil.Tx) int {
+	var maxValue int64
+	var maxValueIdx int
+	for txoutIdx, txout := range tx.MsgTx().TxOut {
+		if txout.Value > maxValue {
+			maxValue = txout.Value
+			maxValueIdx = txoutIdx
+		}
+	}
+	return maxValueIdx
+}
+
+func TxHasSuspiciousOutputValues(tx *btcutil.Tx) bool {
+	numTinyValues := 0
+	for _, txout := range tx.MsgTx().TxOut {
+		if SatoshisToBTCs(txout.Value) == 0.00000001 {
+			numTinyValues++
+		}
+	}
+
+	if numTinyValues == len(tx.MsgTx().TxOut)-1 {
+		return true
+	}
+	return false
+}

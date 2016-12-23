@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -66,7 +65,7 @@ func (cmd *TxChainCommand) CrawlBackwards(startHash chainhash.Hash, db *blockdb.
 			return nil, err
 		}
 
-		if cmd.txHasSuspiciousOutputValues(tx) {
+		if utils.TxHasSuspiciousOutputValues(tx) {
 			foundHashesReverse = append(foundHashesReverse, currentTxHash)
 			if len(tx.MsgTx().TxIn) == 1 {
 				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
@@ -96,10 +95,10 @@ func (cmd *TxChainCommand) CrawlForwards(startHash chainhash.Hash, db *blockdb.B
 			return nil, err
 		}
 
-		if cmd.txHasSuspiciousOutputValues(tx) {
+		if utils.TxHasSuspiciousOutputValues(tx) {
 			foundHashes = append(foundHashes, currentTxHash)
 
-			maxValueTxoutIdx := cmd.findMaxValueTxOut(tx)
+			maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
 
 			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
 			spentTxOut, err := db.GetSpentTxOut(key)
@@ -114,32 +113,6 @@ func (cmd *TxChainCommand) CrawlForwards(startHash chainhash.Hash, db *blockdb.B
 		}
 	}
 	return foundHashes, nil
-}
-
-func (cmd *TxChainCommand) findMaxValueTxOut(tx *btcutil.Tx) int {
-	var maxValue int64
-	var maxValueIdx int
-	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		if txout.Value > maxValue {
-			maxValue = txout.Value
-			maxValueIdx = txoutIdx
-		}
-	}
-	return maxValueIdx
-}
-
-func (cmd *TxChainCommand) txHasSuspiciousOutputValues(tx *btcutil.Tx) bool {
-	numTinyValues := 0
-	for _, txout := range tx.MsgTx().TxOut {
-		if utils.SatoshisToBTCs(txout.Value) == 0.00000001 {
-			numTinyValues++
-		}
-	}
-
-	if numTinyValues == len(tx.MsgTx().TxOut)-1 {
-		return true
-	}
-	return false
 }
 
 func (cmd *TxChainCommand) writeDataFromTxs(txHashes []chainhash.Hash, db *blockdb.BlockDB) error {

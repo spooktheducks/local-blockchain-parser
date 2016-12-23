@@ -47,8 +47,8 @@ func (cmd *FindPlaintextCommand) RunCommand() error {
 	chDones := []chan bool{}
 	for i := int(cmd.startBlock); i < int(cmd.endBlock)+1; i++ {
 		chDone := make(chan bool)
-		go cmd.parseBlock(i, chErr, chDone, procLimiter)
 		chDones = append(chDones, chDone)
+		go cmd.parseBlock(i, chErr, chDone, procLimiter)
 	}
 
 	// wait for all ops to complete

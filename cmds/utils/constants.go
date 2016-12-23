@@ -2,6 +2,7 @@ package utils
 
 const (
 	WLKeyFingerprint = "A04C5E09ED02B32803EB611693ED732E92318DBA"
+	ApplebaumsHash   = "62f50063cf2f4be935275032e13394e4857c232b"
 )
 
 var CablegateTxs = map[string]bool{
