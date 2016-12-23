@@ -194,7 +194,7 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 
 		val := bucket.Get(blockHash[:])
 		if val == nil {
-			return fmt.Errorf("could not find block %v", blockHash.String())
+			return BlockNotFoundError{BlockHash: blockHash}
 		}
 
 		blockRow, err = NewBlockIndexRowFromBytes(val)
@@ -235,7 +235,7 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 
 		val := bucket.Get(txHash[:])
 		if val == nil {
-			return fmt.Errorf("could not find transaction %v", txHash)
+			return TxNotFoundError{TxHash: txHash}
 		}
 
 		txRow, err = NewTxIndexRowFromBytes(val)
@@ -245,12 +245,12 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 
 		bucket = boltTx.Bucket([]byte(BucketBlockIndex))
 		if bucket == nil {
-			return fmt.Errorf("could not find bucket BlockIndex")
+			return DataNotIndexedError{Index: "blocks"}
 		}
 
 		val = bucket.Get(txRow.BlockHash[:])
 		if val == nil {
-			return fmt.Errorf("could not find block %v", txRow.BlockHash)
+			return BlockNotFoundError{BlockHash: txRow.BlockHash}
 		}
 
 		blockRow, err = NewBlockIndexRowFromBytes(val)
