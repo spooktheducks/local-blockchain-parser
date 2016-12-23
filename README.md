@@ -87,7 +87,15 @@ local-blockchain-parser querydb tx-info --datFileDir ./data 5c593b7b71063a01f412
 
 This will run the full suite of "transaction checks" that look inside transactions for hidden data.  It currently searches for plaintext, known file headers, PGP keys, Satoshi-encoded data.  If you're querying the transaction given in the example above, the tool should report that it found a `7z header`.
 
-### 3. Decode the Cablegate files from the blockchain
+### 3. Build the "spent transaction" index
+
+```sh
+local-blockchain-parser builddb spent-txouts --datFileDir ./data --startBlock 52 --endBlock 53
+```
+
+This lets us crawl forward through chains of transactions.
+
+### 4. Decode the Cablegate files from the blockchain
 
 You can do this with only blk00052.dat.  You have to build the block + transaction indices as explained in the examples above.
 
