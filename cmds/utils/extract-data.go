@@ -11,6 +11,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 func GetSatoshiEncodedData(data []byte) ([]byte, error) {
@@ -84,6 +85,16 @@ func ConcatNonOPHexTokensFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
 		}
 
 		allBytes = append(allBytes, bs...)
+	}
+
+	return allBytes, nil
+}
+
+func ConcatTxInScripts(tx *btcutil.Tx) ([]byte, error) {
+	allBytes := []byte{}
+
+	for _, txin := range tx.MsgTx().TxIn {
+		allBytes = append(allBytes, txin.SignatureScript...)
 	}
 
 	return allBytes, nil
@@ -184,6 +195,30 @@ func SearchDataForMagicFileBytes(data []byte) []FileMagicBytesResult {
 	return matches
 }
 
+type PGPPacketResult struct {
+	Packets []packet.Packet
+}
+
+func FindPGPPackets(data []byte) PGPPacketResult {
+	packets := []packet.Packet{}
+
+	reader := packet.NewReader(bytes.NewReader(data))
+	for {
+		packet, err := reader.Next()
+		if err != nil {
+			break
+		}
+		packets = append(packets, packet)
+		// if isSatoshi {
+		// fmt.Printf("  - GPG packet (satoshi-encoded): %+v\n", packet)
+		// } else {
+		// fmt.Printf("  - GPG packet: %+v\n", packet)
+		// }
+	}
+
+	return PGPPacketResult{Packets: packets}
+}
+
 func ExtractText(bs []byte) ([]byte, bool) {
 	start := 0
 
@@ -209,7 +244,7 @@ func ExtractText(bs []byte) ([]byte, bool) {
 	// if sublen < 5 {
 	// 	return nil, false
 	// }
-	fmt.Println("~~~~ EXTRACT TEXT", start, end)
+	// fmt.Println("~~~~ EXTRACT TEXT", start, end)
 
 	substr := bs[start:end]
 	return substr, true
@@ -266,7 +301,7 @@ func TxHasSuspiciousOutputValues(tx *btcutil.Tx) bool {
 		}
 	}
 
-	if numTinyValues == len(tx.MsgTx().TxOut)-1 {
+	if numTinyValues > 0 && numTinyValues == len(tx.MsgTx().TxOut)-1 {
 		return true
 	}
 	return false

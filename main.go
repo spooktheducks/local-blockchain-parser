@@ -54,14 +54,15 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{Name: "datFileDir", Usage: "The directory containing blockchain blk00XXX.dat files"},
 						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 					},
 					Action: func(c *cli.Context) error {
-						datFileDir, dbFile := c.String("datFileDir"), c.String("dbFile")
+						datFileDir, dbFile, outDir := c.String("datFileDir"), c.String("dbFile"), c.String("outDir")
 						txHash := c.Args().Get(0)
 						if txHash == "" {
 							return fmt.Errorf("must specify tx hash")
 						}
-						cmd := dbcmds.NewTxChainCommand(datFileDir, dbFile, txHash)
+						cmd := dbcmds.NewTxChainCommand(datFileDir, dbFile, outDir, txHash)
 						return cmd.RunCommand()
 					},
 				},

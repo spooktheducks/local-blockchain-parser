@@ -1,13 +1,11 @@
 package dbcmds
 
 import (
-	"bytes"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/btcsuite/btcutil"
-	"golang.org/x/crypto/openpgp/packet"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -113,12 +111,8 @@ func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
 		data = satoshiData
 	}
 
-	reader := packet.NewReader(bytes.NewReader(data))
-	for {
-		packet, err := reader.Next()
-		if err != nil {
-			break
-		}
+	result := utils.FindPGPPackets(data)
+	for _, packet := range result.Packets {
 		if isSatoshi {
 			fmt.Printf("  - GPG packet (satoshi-encoded): %+v\n", packet)
 		} else {

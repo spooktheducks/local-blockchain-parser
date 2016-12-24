@@ -103,9 +103,15 @@ You can do this with only blk00052.dat.  You have to build the block + transacti
 local-blockchain-parser querydb tx-chain --datFileDir ./data 2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8
 ```
 
-You will notice that an `output` folder has been created.  A file called `txchain-output` is in this folder.  Rename that file to `cablegate.7z` and unzip it with a 7zip extractor.  Tada, you have the entire cablegate release.
+*Note: `2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8` is a random transaction from the Cablegate release.  You can specify any transaction in the list, and the crawler will crawl forwards and backwards to find the entire chain.*
 
-The transaction hash you have to specify for this command can be any transaction in the cablegate release.  The tool will crawl forwards and backwards through the relevant transactions and combine all of the data it finds.
+You will notice that the following folder has been created:
+
+```
+output/tx-chain/2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8
+```
+
+A file called `satoshi-encoded-data.dat` is in this folder.  Rename that file to `cablegate.7z` and unzip it with a 7zip extractor.  Tada, you have the entire Cablegate release.
 
 
 ## Other commands
