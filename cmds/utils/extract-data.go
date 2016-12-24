@@ -15,6 +15,10 @@ import (
 )
 
 func GetSatoshiEncodedData(data []byte) ([]byte, error) {
+	if len(data) < 8 {
+		return nil, fmt.Errorf("GetSatoshiEncodedData: not enough data")
+	}
+
 	length := binary.LittleEndian.Uint32(data[0:4])
 	checksum := binary.LittleEndian.Uint32(data[4:8])
 	if len(data) < 8+int(length) {

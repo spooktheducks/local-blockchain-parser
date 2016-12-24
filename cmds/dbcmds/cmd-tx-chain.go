@@ -128,7 +128,8 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
 		spentTxOut, err := cmd.db.GetSpentTxOut(key)
 		if err != nil {
-			return nil, err
+			// return nil, err
+			break
 		}
 
 		currentTxHash = spentTxOut.InputTxHash
@@ -180,6 +181,7 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 			return err
 		}
 
+		// check input scripts for PGP packets
 		inData, err := utils.ConcatTxInScripts(tx)
 		if err != nil {
 			return err
@@ -193,7 +195,14 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 				return err
 			}
 		}
+		if len(result.Packets) > 0 {
+			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-input.dat", txHash.String())), inData)
+			if err != nil {
+				return err
+			}
+		}
 
+		// check output scripts for PGP packets
 		outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 		if err != nil {
 			return err
@@ -207,7 +216,14 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 				return err
 			}
 		}
+		if len(result.Packets) > 0 {
+			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-output.dat", txHash.String())), outData)
+			if err != nil {
+				return err
+			}
+		}
 
+		// check satoshi-encoded output scripts for PGP packets
 		satoshiData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
 		if err != nil {
 			return err
@@ -215,13 +231,20 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 
 		satoshiData, err = utils.GetSatoshiEncodedData(satoshiData)
 		if err != nil {
-			return err
+			// return err
+			continue
 		}
 
 		result = utils.FindPGPPackets(satoshiData)
 		for _, p := range result.Packets {
 			fmt.Printf("  - output scripts (satoshi-encoded) PGP packet detected: %+v\n", p)
 			_, err := outFile.WriteString(fmt.Sprintf("%s,output-satoshi,%+v\n", txHash.String(), p), true)
+			if err != nil {
+				return err
+			}
+		}
+		if len(result.Packets) > 0 {
+			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-output-satoshi.dat", txHash.String())), satoshiData)
 			if err != nil {
 				return err
 			}
