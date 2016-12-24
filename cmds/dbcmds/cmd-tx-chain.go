@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
@@ -166,13 +167,53 @@ func (cmd *TxChainCommand) processTxs(startHash chainhash.Hash, txHashes []chain
 }
 
 func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
-	outFilename := filepath.Join(cmd.outDir, "pgp-packets.csv")
-	outFile := utils.NewConditionalFile(outFilename)
-	defer outFile.Close()
+	csvFilename := filepath.Join(cmd.outDir, "pgp-packets.csv")
+	csvFile := utils.NewConditionalFile(csvFilename)
+	defer csvFile.Close()
 
-	_, err := outFile.WriteString("tx hash,input or output,description\n", false)
+	_, err := csvFile.WriteString("tx hash,input or output,description\n", false)
 	if err != nil {
 		return err
+	}
+
+	type txDataSource struct {
+		name    string
+		getData func(*btcutil.Tx) ([]byte, error)
+	}
+
+	txDataSources := []txDataSource{
+		{"input", utils.ConcatTxInScripts},
+		{"output", utils.ConcatNonOPHexTokensFromTxOuts},
+		{"output-satoshi", utils.ConcatSatoshiDataFromTxOuts},
+	}
+
+	type IResult interface {
+		DescriptionStrings() []string
+		IsEmpty() bool
+	}
+
+	outputMethods := []func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error{
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			for _, p := range result.DescriptionStrings() {
+				fmt.Printf("  - %v PGP packet detected: %s\n", txDataSourceName, p)
+			}
+			return nil
+		},
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			for _, p := range result.DescriptionStrings() {
+				_, err := csvFile.WriteString(fmt.Sprintf("%s,%s,%s\n", txHash.String(), txDataSourceName, p), true)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			if !result.IsEmpty() {
+				return utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%s-%s.dat", txHash.String(), txDataSourceName)), data)
+			}
+			return nil
+		},
 	}
 
 	for _, txHash := range txHashes {
@@ -181,72 +222,19 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 			return err
 		}
 
-		// check input scripts for PGP packets
-		inData, err := utils.ConcatTxInScripts(tx)
-		if err != nil {
-			return err
-		}
-
-		result := utils.FindPGPPackets(inData)
-		for _, p := range result.Packets {
-			fmt.Printf("  - input scripts PGP packet detected: %+v\n", p)
-			_, err := outFile.WriteString(fmt.Sprintf("%s,input,%+v\n", txHash.String(), p), true)
+		for _, txDataSource := range txDataSources {
+			data, err := txDataSource.getData(tx)
 			if err != nil {
-				return err
+				continue
 			}
-		}
-		if len(result.Packets) > 0 {
-			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-input.dat", txHash.String())), inData)
-			if err != nil {
-				return err
-			}
-		}
 
-		// check output scripts for PGP packets
-		outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
-		if err != nil {
-			return err
-		}
+			result := utils.FindPGPPackets(data)
 
-		result = utils.FindPGPPackets(outData)
-		for _, p := range result.Packets {
-			fmt.Printf("  - output scripts PGP packet detected: %+v\n", p)
-			_, err := outFile.WriteString(fmt.Sprintf("%s,output,%+v\n", txHash.String(), p), true)
-			if err != nil {
-				return err
-			}
-		}
-		if len(result.Packets) > 0 {
-			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-output.dat", txHash.String())), outData)
-			if err != nil {
-				return err
-			}
-		}
-
-		// check satoshi-encoded output scripts for PGP packets
-		satoshiData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
-		if err != nil {
-			return err
-		}
-
-		satoshiData, err = utils.GetSatoshiEncodedData(satoshiData)
-		if err != nil {
-			// return err
-			continue
-		}
-
-		result = utils.FindPGPPackets(satoshiData)
-		for _, p := range result.Packets {
-			fmt.Printf("  - output scripts (satoshi-encoded) PGP packet detected: %+v\n", p)
-			_, err := outFile.WriteString(fmt.Sprintf("%s,output-satoshi,%+v\n", txHash.String(), p), true)
-			if err != nil {
-				return err
-			}
-		}
-		if len(result.Packets) > 0 {
-			err := utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("pgp-data-%v-output-satoshi.dat", txHash.String())), satoshiData)
-			if err != nil {
-				return err
+			for _, out := range outputMethods {
+				err := out(txHash, txDataSource.name, data, result)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	}

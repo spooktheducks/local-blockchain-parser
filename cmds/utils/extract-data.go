@@ -94,6 +94,15 @@ func ConcatNonOPHexTokensFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
 	return allBytes, nil
 }
 
+func ConcatSatoshiDataFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
+	data, err := ConcatNonOPHexTokensFromTxOuts(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return GetSatoshiEncodedData(data)
+}
+
 func ConcatTxInScripts(tx *btcutil.Tx) ([]byte, error) {
 	allBytes := []byte{}
 
@@ -201,6 +210,18 @@ func SearchDataForMagicFileBytes(data []byte) []FileMagicBytesResult {
 
 type PGPPacketResult struct {
 	Packets []packet.Packet
+}
+
+func (r PGPPacketResult) IsEmpty() bool {
+	return len(r.Packets) == 0
+}
+
+func (r PGPPacketResult) DescriptionStrings() []string {
+	strs := make([]string, len(r.Packets))
+	for i, p := range r.Packets {
+		strs[i] = fmt.Sprintf("%+v", p)
+	}
+	return strs
 }
 
 func FindPGPPackets(data []byte) PGPPacketResult {
