@@ -418,6 +418,9 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
 	}
 
+	keys := []SpentTxOutKey{}
+	vals := []SpentTxOutRow{}
+
 	for _, datFilename := range blockDATFiles {
 		datFilepath := filepath.Join(db.datFileDir, datFilename)
 
@@ -435,12 +438,26 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 					key := SpentTxOutKey{TxHash: txin.PreviousOutPoint.Hash, TxOutIndex: txin.PreviousOutPoint.Index}
 					val := SpentTxOutRow{InputTxHash: *tx.Hash(), TxInIndex: uint32(txinIdx)}
 
-					err = db.PutSpentTxOut(key, val)
-					if err != nil {
-						return err
+					keys = append(keys, key)
+					vals = append(vals, val)
+
+					if len(keys) == 40 {
+						err = db.PutSpentTxOuts(keys, vals)
+						if err != nil {
+							return err
+						}
+						keys = []SpentTxOutKey{}
+						vals = []SpentTxOutRow{}
 					}
 				}
 			}
+		}
+	}
+
+	if len(keys) > 0 {
+		err := db.PutSpentTxOuts(keys, vals)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -467,6 +484,36 @@ func (db *BlockDB) PutSpentTxOut(key SpentTxOutKey, val SpentTxOutRow) error {
 		err = bucket.Put(keyBytes, valBytes)
 		if err != nil {
 			return err
+		}
+
+		return nil
+	})
+
+	return err
+}
+
+func (db *BlockDB) PutSpentTxOuts(keys []SpentTxOutKey, vals []SpentTxOutRow) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketSpentTxOuts))
+		if err != nil {
+			return err
+		}
+
+		for i := range keys {
+			keyBytes, err := keys[i].ToBytes()
+			if err != nil {
+				return err
+			}
+
+			valBytes, err := vals[i].ToBytes()
+			if err != nil {
+				return err
+			}
+
+			err = bucket.Put(keyBytes, valBytes)
+			if err != nil {
+				return err
+			}
 		}
 
 		return nil

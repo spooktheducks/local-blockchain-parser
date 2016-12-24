@@ -57,6 +57,10 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
+	for _, h := range foundHashes {
+		fmt.Println(h.String())
+	}
+
 	return nil
 }
 
@@ -116,22 +120,22 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 			return nil, err
 		}
 
-		if utils.TxHasSuspiciousOutputValues(tx) {
-			foundHashes = append(foundHashes, currentTxHash)
+		// if utils.TxHasSuspiciousOutputValues(tx) {
+		foundHashes = append(foundHashes, currentTxHash)
 
-			maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
+		maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
 
-			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
-			spentTxOut, err := cmd.db.GetSpentTxOut(key)
-			if err != nil {
-				return nil, err
-			}
-
-			currentTxHash = spentTxOut.InputTxHash
-
-		} else {
-			break
+		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
+		spentTxOut, err := cmd.db.GetSpentTxOut(key)
+		if err != nil {
+			return nil, err
 		}
+
+		currentTxHash = spentTxOut.InputTxHash
+
+		// } else {
+		// 	break
+		// }
 	}
 	return foundHashes, nil
 }
@@ -347,7 +351,8 @@ func (cmd *TxChainCommand) writeSatoshiDataFromTxOuts(txHashes []chainhash.Hash)
 
 		data, err = utils.GetSatoshiEncodedData(data)
 		if err != nil {
-			return err
+			return nil
+			// return err
 		}
 
 		_, err = outFile.Write(data, true)
