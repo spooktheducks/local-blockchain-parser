@@ -50,6 +50,23 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
 
+	txoutAddrs, err := utils.GetTxOutAddresses(tx)
+	if err != nil {
+		return err
+	}
+
+	for txoutIdx, addrs := range txoutAddrs {
+		if len(addrs) == 0 {
+			fmt.Printf("  - TxOut %v: can't decode address\n", txoutIdx)
+		} else {
+			addrStrings := make([]string, len(addrs))
+			for i := range addrs {
+				addrStrings[i] = addrs[i].String()
+			}
+			fmt.Printf("  - TxOut %v: paid to %v\n", txoutIdx, strings.Join(addrStrings, ", "))
+		}
+	}
+
 	err = cmd.printOutputsSpentUnspent(db, tx)
 	if err != nil {
 		return err

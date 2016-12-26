@@ -10,6 +10,7 @@ import (
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	// "github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 )
 
 type TxChainCommand struct {
@@ -48,6 +49,34 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
+	// s := &scanner.Scanner{
+	// 	DB:           db,
+	// 	TxHashSource: scanner.NewChainTxHashSource(db, startHash),
+	// 	TxDataSources: []scanner.ITxDataSource{
+	// 		&scanner.InputScriptTxDataSource{},
+	// 		&scanner.OutputScriptTxDataSource{},
+	// 		&scanner.OutputScriptSatoshiTxDataSource{},
+	// 	},
+	// 	DataDetectors: []scanner.IDataDetector{
+	// 		&scanner.PGPDataDetector{},
+	// 		&scanner.PlaintextDetector{},
+	// 	},
+	// 	Outputs: []scanner.IOutput{
+	// 		// &scanner.ConsoleOutput{Prefix: "  - "},
+	// 		&scanner.RawDataOutput{OutDir: cmd.outDir},
+	// 		&scanner.RawDataAggregatorOutput{OutDir: cmd.outDir},
+	// 		// scanner.NewCSVOutput(func (txHash chainhash.Hash, txDataSource ITxDataSource, detector IDataDetector, data []byte, result IDetectionResult) string {
+	// 		// }),
+	// 	},
+	// }
+
+	// err = s.Run()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return s.Close()
+
 	foundHashes, err := cmd.getTxs(startHash)
 	if err != nil {
 		return err
@@ -58,8 +87,17 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
+	// for _, h := range foundHashes {
+	// 	fmt.Println(h.String())
+	// }
+
+	transactionTxt := ""
 	for _, h := range foundHashes {
-		fmt.Println(h.String())
+		transactionTxt = transactionTxt + h.String() + "\n"
+	}
+	err = utils.CreateAndWriteFile(filepath.Join(cmd.outDir, "transactions.txt"), []byte(transactionTxt))
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -130,6 +168,7 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 		spentTxOut, err := cmd.db.GetSpentTxOut(key)
 		if err != nil {
 			// return nil, err
+			fmt.Printf("Can't find where TxOut %+v was spent.  Either it was unspent, or you haven't indexed the .dat files containing it.\n", key)
 			break
 		}
 

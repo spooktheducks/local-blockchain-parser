@@ -9,6 +9,7 @@ import (
 	"hash/crc32"
 	"strings"
 
+	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
 	"github.com/btcsuite/btcutil"
 	"golang.org/x/crypto/openpgp/packet"
@@ -111,6 +112,20 @@ func ConcatTxInScripts(tx *btcutil.Tx) ([]byte, error) {
 	}
 
 	return allBytes, nil
+}
+
+func GetTxOutAddresses(tx *btcutil.Tx) ([][]btcutil.Address, error) {
+	addrs := make([][]btcutil.Address, len(tx.MsgTx().TxOut))
+
+	for i, txout := range tx.MsgTx().TxOut {
+		_, addresses, _, err := txscript.ExtractPkScriptAddrs(txout.PkScript, &chaincfg.MainNetParams)
+		if err != nil {
+			return nil, err
+		}
+		addrs[i] = addresses
+	}
+
+	return addrs, nil
 }
 
 type (
