@@ -87,10 +87,6 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
-	// for _, h := range foundHashes {
-	// 	fmt.Println(h.String())
-	// }
-
 	transactionTxt := ""
 	for _, h := range foundHashes {
 		transactionTxt = transactionTxt + h.String() + "\n"
@@ -183,6 +179,11 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 
 func (cmd *TxChainCommand) processTxs(startHash chainhash.Hash, txHashes []chainhash.Hash) error {
 	err := cmd.writeSatoshiDataFromTxOuts(txHashes)
+	if err != nil {
+		return err
+	}
+
+	err = cmd.writeDataFromTxOuts(txHashes)
 	if err != nil {
 		return err
 	}
@@ -412,5 +413,40 @@ func (cmd *TxChainCommand) writeSatoshiDataFromTxOuts(txHashes []chainhash.Hash)
 	}
 
 	fmt.Println("Satoshi-encoded data written to", outFilename)
+	return nil
+}
+
+func (cmd *TxChainCommand) writeDataFromTxOuts(txHashes []chainhash.Hash) error {
+	outFilename := filepath.Join(cmd.outDir, "txout-data.dat")
+	outFile := utils.NewConditionalFile(outFilename)
+	defer outFile.Close()
+
+	allData := []byte{}
+	for _, txHash := range txHashes {
+		tx, err := cmd.db.GetTx(txHash)
+		if err != nil {
+			return err
+		}
+
+		data := []byte{}
+		for i := 0; i < len(tx.MsgTx().TxOut); i++ {
+			bs, err := utils.GetNonOPBytes(tx.MsgTx().TxOut[i].PkScript)
+			if err != nil {
+				continue
+			}
+
+			data = append(data, bs...)
+		}
+		allData = append(allData, data...)
+
+		_, err = outFile.Write(data, true)
+		if err != nil {
+			return err
+		}
+	}
+
+	fmt.Println("TxOut data written to", outFilename)
+	var str string
+	fmt.Scanf("%s", &str)
 	return nil
 }

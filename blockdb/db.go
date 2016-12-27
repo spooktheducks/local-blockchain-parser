@@ -133,53 +133,74 @@ func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFileIdx int) 
 }
 
 func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
+	const writesPerBoltTx = 5000 // this value was determined by benchmarking, change at your own peril
+
 	fmt.Println("writing transaction index...")
 
 	// we break the blocks into a bunch of smaller groups because BoltDB writes much more quickly this way
-	groupLen := 10
-	blockGroups := utils.GroupBlocks(blocks, groupLen)
-	numBlocks := len(blocks)
+	// groupLen := 10
+	// blockGroups := utils.GroupBlocks(blocks, groupLen)
+	// numBlocks := len(blocks)
 
-	for g, group := range blockGroups {
-		err := db.store.Update(func(boltTx *bolt.Tx) error {
-			bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketTransactionIndex))
-			if err != nil {
-				return fmt.Errorf("create bucket: %s", err)
+	keys := []chainhash.Hash{}
+	vals := []TxIndexRow{}
+
+	for _, bl := range blocks {
+		for txIdx, tx := range bl.Transactions() {
+			row := TxIndexRow{
+				BlockHash:    *bl.Hash(),
+				IndexInBlock: uint64(txIdx),
 			}
 
-			for blkIdx, bl := range group {
-				numTxs := len(bl.Transactions())
+			keys = append(keys, *tx.Hash())
+			vals = append(vals, row)
 
-				for txIdx, tx := range bl.Transactions() {
-					row := TxIndexRow{
-						BlockHash:    *bl.Hash(),
-						IndexInBlock: uint64(txIdx),
-					}
-
-					rowBytes, err := row.ToBytes()
-					if err != nil {
-						return err
-					}
-
-					err = bucket.Put(tx.Hash()[:], rowBytes)
-					if err != nil {
-						return err
-					}
-
-					fmt.Printf("finished tx %v (%v/%v) (%v/%v)\n", tx.Hash().String(), txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
-					// fmt.Printf("finished tx (%v/%v) (%v/%v)\n", txIdx+1, numTxs, (g*groupLen)+blkIdx+1, numBlocks)
+			if len(keys) > writesPerBoltTx {
+				err := db.putTxIndexRows(keys, vals)
+				if err != nil {
+					return err
 				}
+
+				keys = []chainhash.Hash{}
+				vals = []TxIndexRow{}
 			}
+		}
 
-			return nil
-		})
+		fmt.Printf("finished block %s\n", bl.Hash().String())
+	}
 
+	if len(keys) > 0 {
+		err := db.putTxIndexRows(keys, vals)
 		if err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (db *BlockDB) putTxIndexRows(keys []chainhash.Hash, rows []TxIndexRow) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketTransactionIndex))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+
+		for i := range keys {
+			rowBytes, err := rows[i].ToBytes()
+			if err != nil {
+				return err
+			}
+
+			err = bucket.Put(keys[i][:], rowBytes)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	return err
 }
 
 func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {

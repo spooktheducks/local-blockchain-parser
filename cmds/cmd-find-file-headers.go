@@ -84,43 +84,61 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 		return
 	}
 
-	for _, bl := range blocks {
+	numBlocks := len(blocks)
+	for blIdx, bl := range blocks {
 		blockHash := bl.Hash().String()
 
-		for _, tx := range bl.Transactions() {
+		numTxs := len(bl.Transactions())
+		for txIdx, tx := range bl.Transactions() {
 			txHash := tx.Hash().String()
 
-			// check TxIn scripts for known file headers/footers
-			for txinIdx, txin := range tx.MsgTx().TxIn {
-				matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
-				for _, m := range matches {
-					_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", txinIdx, m.Description()), true)
-					if err != nil {
-						chErr <- err
-						return
+			/*
+				// check TxIn scripts for known file headers/footers
+				for txinIdx, txin := range tx.MsgTx().TxIn {
+					matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
+					for _, m := range matches {
+						_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", txinIdx, m.Description()), true)
+						if err != nil {
+							chErr <- err
+							return
+						}
 					}
 				}
-			}
 
-			// check TxOut scripts for known file headers/footers
-			for txoutIdx, txout := range tx.MsgTx().TxOut {
-				matches := utils.SearchDataForMagicFileBytes(txout.PkScript)
-				for _, m := range matches {
-					_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", txoutIdx, m.Description()), true)
-					if err != nil {
-						chErr <- err
-						return
+				// check TxOut scripts for known file headers/footers
+				for txoutIdx, txout := range tx.MsgTx().TxOut {
+					matches := utils.SearchDataForMagicFileBytes(txout.PkScript)
+					for _, m := range matches {
+						_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", txoutIdx, m.Description()), true)
+						if err != nil {
+							chErr <- err
+							return
+						}
 					}
-				}
-			}
+				}*/
 
-			parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+			inData, err := utils.ConcatTxInScripts(tx)
 			if err != nil {
 				chErr <- err
 				return
 			}
 
-			matches := utils.SearchDataForMagicFileBytes(parsedScriptData)
+			matches := utils.SearchDataForMagicFileBytes(inData)
+			for _, m := range matches {
+				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "in", -1, m.Description()), true)
+				if err != nil {
+					chErr <- err
+					return
+				}
+			}
+
+			outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+			if err != nil {
+				chErr <- err
+				return
+			}
+
+			matches = utils.SearchDataForMagicFileBytes(outData)
 			for _, m := range matches {
 				_, err := outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, txHash, "out", -1, m.Description()), true)
 				if err != nil {
@@ -128,6 +146,8 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 					return
 				}
 			}
+
+			fmt.Printf("finished %v (%v/%v) (%v/%v)\n", txHash, txIdx, numTxs, blIdx, numBlocks)
 		}
 	}
 
