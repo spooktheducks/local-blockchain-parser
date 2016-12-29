@@ -164,8 +164,15 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 		spentTxOut, err := cmd.db.GetSpentTxOut(key)
 		if err != nil {
 			// return nil, err
-			fmt.Printf("Can't find where TxOut %+v was spent.  Either it was unspent, or you haven't indexed the .dat files containing it.\n", key)
-			break
+			// fmt.Printf("Can't find where TxOut %+v was spent.  Either it was unspent, or you haven't indexed the .dat files containing it.\n", key)
+
+			fmt.Printf("searching for TxOut %+v in DAT files\n", key)
+			spentTxOut, err = cmd.db.GetSpentTxOutFromDATFiles(key)
+			if err != nil {
+				return nil, err
+			}
+
+			// break
 		}
 
 		currentTxHash = spentTxOut.InputTxHash
@@ -446,7 +453,5 @@ func (cmd *TxChainCommand) writeDataFromTxOuts(txHashes []chainhash.Hash) error 
 	}
 
 	fmt.Println("TxOut data written to", outFilename)
-	var str string
-	fmt.Scanf("%s", &str)
 	return nil
 }

@@ -571,3 +571,29 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 
 	return row, err
 }
+
+func (db *BlockDB) GetSpentTxOutFromDATFiles(key SpentTxOutKey) (SpentTxOutRow, error) {
+	datFileStartIndex := 0
+
+	for datIdx := datFileStartIndex; ; datIdx++ {
+		filename := filepath.Join(db.datFileDir, fmt.Sprintf("blk%05d.dat", datIdx))
+		blocks, err := utils.LoadBlocksFromDAT(filename)
+		if err != nil {
+			return SpentTxOutRow{}, err
+		}
+
+		for _, bl := range blocks {
+			for _, tx := range bl.Transactions() {
+
+				for txinIdx, txin := range tx.MsgTx().TxIn {
+					if key.TxHash == txin.PreviousOutPoint.Hash && key.TxOutIndex == txin.PreviousOutPoint.Index {
+						fmt.Println("found SpentTxOutRow by searching dat files", tx.Hash().String())
+						return SpentTxOutRow{InputTxHash: *tx.Hash(), TxInIndex: uint32(txinIdx)}, nil
+					}
+				}
+			}
+		}
+	}
+
+	return SpentTxOutRow{}, fmt.Errorf("could not find transaction %v", key.TxHash.String())
+}
