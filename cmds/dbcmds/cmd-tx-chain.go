@@ -100,15 +100,15 @@ func (cmd *TxChainCommand) RunCommand() error {
 }
 
 func (cmd *TxChainCommand) getTxs(startHash chainhash.Hash) ([]chainhash.Hash, error) {
-	foundHashes1, err := cmd.crawlBackwards(startHash)
-	if err != nil {
-		return nil, err
-	}
+	foundHashes1, _ := cmd.crawlBackwards(startHash)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	foundHashes2, err := cmd.crawlForwards(startHash)
-	if err != nil {
-		return nil, err
-	}
+	foundHashes2, _ := cmd.crawlForwards(startHash)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	// both foundHashes1 and foundHashes2 contain startHash, so we omit it from one of them
 	foundHashes := append(foundHashes1, foundHashes2[1:]...)
@@ -152,10 +152,9 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 	for {
 		tx, err := cmd.db.GetTx(currentTxHash)
 		if err != nil {
-			return nil, err
+			return foundHashes, err
 		}
 
-		// if utils.TxHasSuspiciousOutputValues(tx) {
 		foundHashes = append(foundHashes, currentTxHash)
 
 		maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
@@ -169,17 +168,13 @@ func (cmd *TxChainCommand) crawlForwards(startHash chainhash.Hash) ([]chainhash.
 			fmt.Printf("searching for TxOut %+v in DAT files\n", key)
 			spentTxOut, err = cmd.db.GetSpentTxOutFromDATFiles(key)
 			if err != nil {
-				return nil, err
+				return foundHashes, err
 			}
 
 			// break
 		}
 
 		currentTxHash = spentTxOut.InputTxHash
-
-		// } else {
-		// 	break
-		// }
 	}
 	return foundHashes, nil
 }
@@ -240,12 +235,12 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 	}
 
 	outputMethods := []func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error{
-		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
-			for _, p := range result.DescriptionStrings() {
-				fmt.Printf("  - %v PGP packet detected: %s\n", txDataSourceName, p)
-			}
-			return nil
-		},
+		// func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+		// 	for _, p := range result.DescriptionStrings() {
+		// 		fmt.Printf("  - %v PGP packet detected: %s\n", txDataSourceName, p)
+		// 	}
+		// 	return nil
+		// },
 		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
 			for _, p := range result.DescriptionStrings() {
 				_, err := csvFile.WriteString(fmt.Sprintf("%s,%s,%s\n", txHash.String(), txDataSourceName, p), true)
@@ -428,7 +423,6 @@ func (cmd *TxChainCommand) writeDataFromTxOuts(txHashes []chainhash.Hash) error 
 	outFile := utils.NewConditionalFile(outFilename)
 	defer outFile.Close()
 
-	allData := []byte{}
 	for _, txHash := range txHashes {
 		tx, err := cmd.db.GetTx(txHash)
 		if err != nil {
@@ -444,7 +438,6 @@ func (cmd *TxChainCommand) writeDataFromTxOuts(txHashes []chainhash.Hash) error 
 
 			data = append(data, bs...)
 		}
-		allData = append(allData, data...)
 
 		_, err = outFile.Write(data, true)
 		if err != nil {
