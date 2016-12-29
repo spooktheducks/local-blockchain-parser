@@ -17,10 +17,8 @@ f3164478e1df43f08a0907f7fc2c822e91bd6cb8  advantage-insecurities-2008.pdf
 58c73f677d36197be442e3d418e000ac66506c9e  af447-acars.pdf
 102eb2d646adef27eacead61b076ab72c6942be1  afg.7z
 b0e020d770050d7d50bea383806f7d33af0b7eb2  afghanistanacmttp-s.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  Afghanistan_OEF_Property_List.csv
 4e35ac1ddd72539fcb9756f809b50d340bd21cfe  Afghanistan_OEF_Property_List-extended.html
 c8011f643e526832f967d938cfb9785b3a7083ee  Afghanistan_OEF_Property_List.html
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  Afghanistan_OEF_Property_List.xls
 25af6d43b69ee53f2a942d2dcbc55215d590943d  afghan-order-of-battle-2007.pdf
 24db27a628396cc574de97de4d75a889d07544b5  ag-kaiserslautern-quote.pdf
 4dc76cc8ff0844ef9219a25cec703b4ba5d9543b  aig09162008.pdf
@@ -1266,7 +1264,6 @@ a44ab18ac4e570f374c70490d4c3f1ba51887f0a  iraq-planning-map.pdf
 aef8dc05f1bb0cc277648e0acfb02985ae323712  iraq-telecoms-license-corruption.pdf
 596f42fa78f2e033c340c9c75cacb2d9e2198450  iraq-tinted-window-ban-2003.pdf
 8d908c8f5f87864f687386b3cf9cb99033b5d9c5  iraq-visitors.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  Iraq.xls
 d7a51e398a0d285592705724ebc6c00a90644505  irc-freenode-gentoo-trustees-conflict.txt
 6436ed8d22fb1102f9082814804f1498ab114d9e  iridium-security.pdf
 9541bb5a0758d9cd181abc022cb058a7001897a1  irq.7z
@@ -1827,11 +1824,6 @@ cccd1c1bd012209ebc9a6046b2ac876f61be6fa8  surgical-aide-sues-over-banner-hospita
 8c916dafeaa84e2c39307c2e571ebbe8ac5ec16c  surrey-police-internal-audit-overview-2009.pdf
 7d3949566355a4e700fabb793deefede768f6fb7  survey-tom-watson-mp-nov-2009.pdf
 e3675eff9b2b52c5f25ecf8e492c2f3742d51863  swanson-swanson-yu-agreement-2008.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  sweden-eu-data-retention-2009.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  sweden-fra-portfolio-2009.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  sweden-militarty-intelligence-service-2009.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  swedish-intelligence-organization-powerpoint-2009.pdf
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  swift-draft.pdf
 1bf4d8d99c5c2309fbf2ad8c6485058730fd1b0c  swiss-censored-schnuetz-movie.flv
 e05598f1b9e4c3af7a4a80f6e0f0e69db5b7e543  swiss-child-pornography-investigation.pdf
 1fb2095e7beb06e790d57e0e0299b75fdfab700a  sysdoc-v3.pdf
@@ -2268,7 +2260,6 @@ d9345bc2a44d557f707a0eb5c4d71eb6608f267b  vertragsentwurf-bka-isp.pdf
 bf4268288ca820e1e656c62c4729d489ad8672fd  Vh97bers.rm
 d0cec88e081bd83b3eed1d03cf75478a24df4286  viacom-international-comic-2009.pdf
 b38af93fa88f51e4feed58d3aa44dd9199ad6e41  victims-by-violent-crakdown-during-peaceful-candlelight-protest-on-1th-june-08-in-seoul.zip
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  video
 1916df6ebca5850ac9bd6293e939a667620c9789  Video_Macroregion.wmv
 d52deb3b5cbc14c2d5e818d9a319afb1454d6233  vietnam-banned-facebook.jpg
 412e925cd12dc884ea4e465084f5a74882ef639b  vince-cable-whistleblower-letter-2009.pdf
@@ -2296,7 +2287,6 @@ e86ac6791102a78f5b635a4c5d0d3a9e3ae3e9db  which-survey-2009.pdf
 8810af2a146c0449a64e1b4f75667e787abe6f66  who-unicri-cocaine-project-study-1995.pdf
 0307b6e330c1529b58d0c16fbf7f37c641402299  why-prisoners-should-have-the-franchise.doc
 35ed419b4b2e0a98bb9b342bdd0b4c9a41c7ca2d  wien-missbrauch-polizei.zip
-b472a266d0bd89c13706a4132ccfb16f7c3b9fcb  WIKILEAKS
 8cf7bb2f1106c8bfb148598fb12b211ce4d9ccd3  wikileaks_archive.7z
 eb31de5a272b74d5a3472d59e65fdfcbfb2bb20c  wikileaks-de-raid-2009.pdf
 09e7021e16d4235a8dd37b5da3048c86ab588854  wikileaks-leaks-donors.txt
