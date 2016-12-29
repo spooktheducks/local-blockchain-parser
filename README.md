@@ -116,18 +116,13 @@ A file called `satoshi-encoded-data.dat` is in this folder.  Rename that file to
 
 ## Other commands
 
-### Finding transactions with duplicate data
-
-If a person wants to set up a robust, reliable DMS (dead man's switch) mechanism, it makes sense to have the DMS activate multiple times.  In terms of a DMS based on the blockchain, that means sending multiple transactions containing the same data.
-
-To check transactions for duplicate data, run the following commands:
+### Searching for known file headers encoded into the blockchain
 
 ```sh
-local-blockchain-parser builddb duplicates --datFileDir ./data --startBlock 52 --endBlock 53
-local-blockchain-parser querydb duplicates --datFileDir ./data
+local-blockchain-parser find-file-headers --datFileDir ./data --startBlock 52 --endBlock 52
 ```
 
-Note that the first command (indexing the duplicates) will take quite a while, and will produce a large .db file on disk.  The output of the second command will be printed to the screen rather than into a text file.
+Output will be generated to `./output/find-file-headers/*.txt`.
 
 ### Searching for plaintext encoded into the blockchain
 
@@ -139,12 +134,18 @@ This command generates a lot of false positives (and therefore, a LOT of output)
 
 Output will be generated to `./output/find-plaintext/*.csv`.
 
+### Finding transactions with duplicate data (experimental)
 
-### Searching for known file headers encoded into the blockchain
+*Note: this command generates so much output right now that it's not very useful.*
+
+If a person wants to set up a robust, reliable DMS (dead man's switch) mechanism, it makes sense to have the DMS activate multiple times.  In terms of a DMS based on the blockchain, that means sending multiple transactions containing the same data.
+
+To check transactions for duplicate data, run the following commands:
 
 ```sh
-local-blockchain-parser find-file-headers --datFileDir ./data --startBlock 52 --endBlock 52
+local-blockchain-parser builddb duplicates --datFileDir ./data --startBlock 52 --endBlock 53
+local-blockchain-parser querydb duplicates --datFileDir ./data
 ```
 
-Output will be generated to `./output/find-file-headers/*.txt`.
+Note that the first command (indexing the duplicates) will take quite a while, and will produce a large .db file on disk.  The output of the second command will be printed to the screen rather than into a text file.
 
