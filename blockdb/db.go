@@ -165,11 +165,6 @@ func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 
 	fmt.Println("writing transaction index...")
 
-	// we break the blocks into a bunch of smaller groups because BoltDB writes much more quickly this way
-	// groupLen := 10
-	// blockGroups := utils.GroupBlocks(blocks, groupLen)
-	// numBlocks := len(blocks)
-
 	keys := []chainhash.Hash{}
 	vals := []TxIndexRow{}
 
@@ -237,8 +232,6 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 		return row, nil
 	}
 
-	fmt.Println("block not found in index")
-
 	switch err.(type) {
 	case DataNotIndexedError, BlockNotFoundError:
 		break
@@ -283,8 +276,7 @@ func (db *BlockDB) getBlockIndexRowFromIndex(blockHash chainhash.Hash) (BlockInd
 
 func (db *BlockDB) getBlockIndexRowFromDATFiles(blockHash chainhash.Hash, startDatIdx uint16) (BlockIndexRow, error) {
 	for i := startDatIdx; ; i++ {
-		msg := fmt.Sprintf("\rsearching for block in DAT file %v", i)
-		fmt.Printf(msg)
+		fmt.Printf("\rsearching for block in DAT file %v", i)
 
 		blocks, err := db.LoadBlocksFromDAT(i)
 		if err != nil {
