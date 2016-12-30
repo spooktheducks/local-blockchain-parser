@@ -141,3 +141,7 @@ func ReverseBytes(bs []byte) []byte {
 
 	return reversed
 }
+
+func DATFilename(idx uint16) string {
+	return fmt.Sprintf("blk%05d.dat", idx)
+}

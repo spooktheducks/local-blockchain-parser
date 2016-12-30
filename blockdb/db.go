@@ -40,6 +40,18 @@ func (db *BlockDB) Close() error {
 	return db.store.Close()
 }
 
+func (db *BlockDB) DATFilename(datIdx uint16) string {
+	return filepath.Join(db.datFileDir, utils.DATFilename(datIdx))
+}
+
+func (db *BlockDB) LoadBlocksFromDAT(datIdx uint16) ([]*btcutil.Block, error) {
+	return utils.LoadBlocksFromDAT(db.DATFilename(datIdx))
+}
+
+func (db *BlockDB) LoadBlockFromDAT(datIdx uint16, blockIdx uint32) (*btcutil.Block, error) {
+	return utils.LoadBlockFromDAT(db.DATFilename(datIdx), blockIdx)
+}
+
 func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		datFilename := fmt.Sprintf("blk%05d.dat", i)
@@ -132,6 +144,22 @@ func (db *BlockDB) writeBlockIndexToDB(blocks []*btcutil.Block, datFileIdx int) 
 	return nil
 }
 
+func (db *BlockDB) putBlockIndexRow(blockHash chainhash.Hash, row BlockIndexRow) error {
+	return db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketBlockIndex))
+		if err != nil {
+			return fmt.Errorf("create bucket: %s", err)
+		}
+
+		rowBytes, err := row.ToBytes()
+		if err != nil {
+			return err
+		}
+
+		return bucket.Put(blockHash[:], rowBytes)
+	})
+}
+
 func (db *BlockDB) writeTxIndexToDB(blocks []*btcutil.Block) error {
 	const writesPerBoltTx = 5000 // this value was determined by benchmarking, change at your own peril
 
@@ -204,6 +232,30 @@ func (db *BlockDB) putTxIndexRows(keys []chainhash.Hash, rows []TxIndexRow) erro
 }
 
 func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
+	row, err := db.getBlockIndexRowFromIndex(blockHash)
+	if err == nil {
+		return row, nil
+	}
+
+	fmt.Println("block not found in index")
+
+	switch err.(type) {
+	case DataNotIndexedError, BlockNotFoundError:
+		break
+	default:
+		return row, err
+	}
+
+	row, err = db.getBlockIndexRowFromDATFiles(blockHash, 0)
+	if err == nil {
+		err = db.putBlockIndexRow(blockHash, row)
+		return row, err
+	}
+
+	return row, err
+}
+
+func (db *BlockDB) getBlockIndexRowFromIndex(blockHash chainhash.Hash) (BlockIndexRow, error) {
 	var err error
 	var blockRow BlockIndexRow
 
@@ -227,6 +279,33 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 	})
 
 	return blockRow, err
+}
+
+func (db *BlockDB) getBlockIndexRowFromDATFiles(blockHash chainhash.Hash, startDatIdx uint16) (BlockIndexRow, error) {
+	for i := startDatIdx; ; i++ {
+		msg := fmt.Sprintf("\rsearching for block in DAT file %v", i)
+		fmt.Printf(msg)
+
+		blocks, err := db.LoadBlocksFromDAT(i)
+		if err != nil {
+			return BlockIndexRow{}, err
+		}
+
+		for blkIdx, bl := range blocks {
+			if *bl.Hash() == blockHash {
+				row := BlockIndexRow{
+					DATFileIdx:     i,
+					Timestamp:      bl.MsgBlock().Header.Timestamp.Unix(),
+					IndexInDATFile: uint32(blkIdx),
+				}
+
+				fmt.Printf("\r")
+				return row, nil
+			}
+		}
+	}
+
+	return BlockIndexRow{}, fmt.Errorf("could not find block %v in DAT files", blockHash.String())
 }
 
 func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
