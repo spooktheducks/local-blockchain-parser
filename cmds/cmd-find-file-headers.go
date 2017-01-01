@@ -84,12 +84,12 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 		return
 	}
 
-	numBlocks := len(blocks)
-	for blIdx, bl := range blocks {
+	// numBlocks := len(blocks)
+	for _, bl := range blocks {
 		blockHash := bl.Hash().String()
 
-		numTxs := len(bl.Transactions())
-		for txIdx, tx := range bl.Transactions() {
+		// numTxs := len(bl.Transactions())
+		for _, tx := range bl.Transactions() {
 			txHash := tx.Hash().String()
 
 			/*
@@ -147,7 +147,7 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 				}
 			}
 
-			fmt.Printf("finished %v (%v/%v) (%v/%v)\n", txHash, txIdx, numTxs, blIdx, numBlocks)
+			// fmt.Printf("finished %v (%v/%v) (%v/%v)\n", txHash, txIdx, numTxs, blIdx, numBlocks)
 		}
 	}
 

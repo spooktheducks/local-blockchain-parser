@@ -37,7 +37,12 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	txRow, blockRow, err := db.GetTxIndexRow(txHash)
+	txRow, err := db.GetTxIndexRow(txHash)
+	if err != nil {
+		return err
+	}
+
+	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
 	if err != nil {
 		return err
 	}
@@ -49,6 +54,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
+	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
 	txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	if err != nil {

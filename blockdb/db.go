@@ -227,7 +227,7 @@ func (db *BlockDB) putTxIndexRows(keys []chainhash.Hash, rows []TxIndexRow) erro
 }
 
 func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
-	row, err := db.getBlockIndexRowFromIndex(blockHash)
+	row, err := db.getBlockIndexRowFromDB(blockHash)
 	if err == nil {
 		return row, nil
 	}
@@ -248,7 +248,7 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 	return row, err
 }
 
-func (db *BlockDB) getBlockIndexRowFromIndex(blockHash chainhash.Hash) (BlockIndexRow, error) {
+func (db *BlockDB) getBlockIndexRowFromDB(blockHash chainhash.Hash) (BlockIndexRow, error) {
 	var err error
 	var blockRow BlockIndexRow
 
@@ -306,7 +306,7 @@ func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
 		return nil, err
 	}
 
-	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.DATFilename()), blockRow.IndexInDATFile)
+	block, err := db.LoadBlockFromDAT(blockRow.DATFileIdx, blockRow.IndexInDATFile)
 	if err != nil {
 		return nil, err
 	}
@@ -314,10 +314,30 @@ func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
 	return block, nil
 }
 
-func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexRow, error) {
+func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, error) {
+	row, err := db.getTxIndexRowFromDB(txHash)
+	if err == nil {
+		return row, nil
+	}
+
+	switch err.(type) {
+	case DataNotIndexedError, TxNotFoundError:
+		break
+	default:
+		return TxIndexRow{}, err
+	}
+
+	row, err = db.getTxIndexRowFromBlockchainInfoAPI(txHash)
+	if err == nil {
+		err = db.putTxIndexRows([]chainhash.Hash{txHash}, []TxIndexRow{row})
+		return row, err
+	}
+	return row, err
+}
+
+func (db *BlockDB) getTxIndexRowFromDB(txHash chainhash.Hash) (TxIndexRow, error) {
 	var err error
 	var txRow TxIndexRow
-	var blockRow BlockIndexRow
 
 	err = db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketTransactionIndex))
@@ -335,38 +355,59 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, BlockIndexR
 			return err
 		}
 
-		bucket = boltTx.Bucket([]byte(BucketBlockIndex))
-		if bucket == nil {
-			return DataNotIndexedError{Index: "blocks"}
-		}
-
-		val = bucket.Get(txRow.BlockHash[:])
-		if val == nil {
-			return BlockNotFoundError{BlockHash: txRow.BlockHash}
-		}
-
-		blockRow, err = NewBlockIndexRowFromBytes(val)
-		if err != nil {
-			return err
-		}
-
 		return nil
 	})
 
 	if err != nil {
-		return TxIndexRow{}, BlockIndexRow{}, err
+		return TxIndexRow{}, err
 	}
 
-	return txRow, blockRow, nil
+	return txRow, nil
+}
+
+func (db *BlockDB) getTxIndexRowFromBlockchainInfoAPI(txHash chainhash.Hash) (TxIndexRow, error) {
+	api := &BlockchainInfoAPI{}
+
+	blockHash, err := api.GetBlockHashForTx(txHash)
+	if err != nil {
+		return TxIndexRow{}, err
+	}
+
+	blockRow, err := db.GetBlockIndexRow(blockHash)
+	if err != nil {
+		return TxIndexRow{}, err
+	}
+
+	bl, err := db.LoadBlockFromDAT(blockRow.DATFileIdx, blockRow.IndexInDATFile)
+	if err != nil {
+		return TxIndexRow{}, err
+	}
+
+	for txIdx, tx := range bl.Transactions() {
+		if txHash == *tx.Hash() {
+			row := TxIndexRow{
+				BlockHash:    blockHash,
+				IndexInBlock: uint64(txIdx),
+			}
+			return row, nil
+		}
+	}
+
+	return TxIndexRow{}, fmt.Errorf("BlockDB.getTxIndexRowFromBlockchainInfoAPI: could not find transaction %v", txHash.String())
 }
 
 func (db *BlockDB) GetTx(txHash chainhash.Hash) (*btcutil.Tx, error) {
-	txRow, blockRow, err := db.GetTxIndexRow(txHash)
+	txRow, err := db.GetTxIndexRow(txHash)
 	if err != nil {
 		return nil, err
 	}
 
-	block, err := utils.LoadBlockFromDAT(filepath.Join(db.datFileDir, blockRow.DATFilename()), blockRow.IndexInDATFile)
+	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	block, err := db.LoadBlockFromDAT(blockRow.DATFileIdx, blockRow.IndexInDATFile)
 	if err != nil {
 		return nil, err
 	}
