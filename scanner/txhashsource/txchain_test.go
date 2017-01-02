@@ -1,4 +1,4 @@
-package scanner_test
+package txhashsource
 
 import (
 	"fmt"

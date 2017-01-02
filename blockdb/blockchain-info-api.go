@@ -9,20 +9,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 )
 
-// func init() {
-// 	api := &BlockchainInfoAPI{}
-
-// 	hash, err := HashFromString("7379ab5047b143c0b6cfe5d8d79ad240b4b4f8cced55aa26f86d1d3d370c0d4c")
-// 	if err != nil {
-// 		panic(err)
-// 	}
-
-// 	_, err = api.GetTx(hash)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// }
-
 type BlockchainInfoAPI struct{}
 
 func (api *BlockchainInfoAPI) GetBlockHashForTx(hash chainhash.Hash) (chainhash.Hash, error) {

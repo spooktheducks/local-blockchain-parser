@@ -11,7 +11,6 @@ import (
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/dbcmds"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils/aeskeyfind"
 )
 
 func main() {
@@ -175,6 +174,20 @@ func main() {
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("outDir")
 				cmd := cmds.NewFindPlaintextCommand(startBlock, endBlock, cfg.DatFileDir, outDir)
+				return cmd.RunCommand()
+			},
+		},
+
+		{
+			Name: "find-aes-keys",
+			Flags: []cli.Flag{
+				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+			},
+			Action: func(c *cli.Context) error {
+				startBlock, endBlock, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("outDir")
+				cmd := cmds.NewFindAESKeysCommand(startBlock, endBlock, cfg.DatFileDir, outDir)
 				return cmd.RunCommand()
 			},
 		},

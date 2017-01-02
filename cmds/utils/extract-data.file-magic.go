@@ -9,18 +9,20 @@ import (
 )
 
 type (
-	FileMagicBytesDef struct {
+	MagicBytesDef struct {
 		Filetype  string
 		MagicData []byte
 	}
 
-	FileMagicBytesResult struct {
+	FoundMagicBytes struct {
 		Filetype string
 		Reversed bool
 	}
+
+	MagicBytesResult []FoundMagicBytes
 )
 
-func (f FileMagicBytesResult) Description() string {
+func (f FoundMagicBytes) Description() string {
 	if f.Reversed {
 		return f.Filetype + " (reversed)"
 	} else {
@@ -28,7 +30,23 @@ func (f FileMagicBytesResult) Description() string {
 	}
 }
 
-var fileMagicBytes = []FileMagicBytesDef{
+func (m MagicBytesResult) IsEmpty() bool {
+	return len(m) == 0
+}
+
+func (m MagicBytesResult) DescriptionStrings() []string {
+	strs := make([]string, len(m))
+	for i, found := range m {
+		if found.Reversed {
+			strs[i] = found.Filetype + " (reversed)"
+		} else {
+			strs[i] = found.Filetype
+		}
+	}
+	return strs
+}
+
+var magicBytes = []MagicBytesDef{
 	{"DOC Header", []byte{0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1}},
 	{"DOC Footer", []byte{0x57, 0x6f, 0x72, 0x64, 0x2e, 0x44, 0x6f, 0x63, 0x75, 0x6d, 0x65, 0x6e, 0x74, 0x2e}},
 	{"XLS Header", []byte{0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1}},
@@ -69,7 +87,7 @@ var fileMagicBytes = []FileMagicBytesDef{
 	{"Mendax", []byte{0x4d, 0x65, 0x6e, 0x64, 0x61, 0x7}},
 }
 
-var wlRipemd160SHA256Hashes = []FileMagicBytesDef{}
+var wlRipemd160SHA256Hashes = []MagicBytesDef{}
 
 func init() {
 	data, err := ioutil.ReadFile("./wlhashes/ripemd160-sha256-hashes.txt")
@@ -91,60 +109,60 @@ func init() {
 			panic(err)
 		}
 
-		wlRipemd160SHA256Hashes = append(wlRipemd160SHA256Hashes, FileMagicBytesDef{filename + " (ripemd160 + sha256 digest)", digestBytes})
+		wlRipemd160SHA256Hashes = append(wlRipemd160SHA256Hashes, MagicBytesDef{filename + " (ripemd160 + sha256 digest)", digestBytes})
 	}
 }
 
-func SearchDataForMagicFileBytes(data []byte) []FileMagicBytesResult {
+func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	if data == nil {
-		return []FileMagicBytesResult{}
+		return nil
 	}
 
-	chMatches := make(chan []FileMagicBytesResult)
+	chMatches := make(chan MagicBytesResult)
 	go func() {
-		matches := []FileMagicBytesResult{}
-		for _, def := range fileMagicBytes {
+		matches := MagicBytesResult{}
+		for _, def := range magicBytes {
 			if bytes.Contains(data, def.MagicData) {
-				matches = append(matches, FileMagicBytesResult{Filetype: def.Filetype, Reversed: false})
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false})
 			}
 		}
 		chMatches <- matches
 	}()
 
-	chMatchesReversed := make(chan []FileMagicBytesResult)
+	chMatchesReversed := make(chan MagicBytesResult)
 	go func() {
-		matches := []FileMagicBytesResult{}
-		for _, def := range fileMagicBytes {
+		matches := MagicBytesResult{}
+		for _, def := range magicBytes {
 			if bytes.Contains(data, ReverseBytes(def.MagicData)) {
-				matches = append(matches, FileMagicBytesResult{Filetype: def.Filetype, Reversed: true})
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true})
 			}
 		}
 		chMatchesReversed <- matches
 	}()
 
-	chRipemd160SHA256 := make(chan []FileMagicBytesResult)
+	chRipemd160SHA256 := make(chan MagicBytesResult)
 	go func() {
-		matches := []FileMagicBytesResult{}
+		matches := MagicBytesResult{}
 		for _, def := range wlRipemd160SHA256Hashes {
 			if bytes.Contains(data, def.MagicData) {
-				matches = append(matches, FileMagicBytesResult{Filetype: def.Filetype, Reversed: false})
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false})
 			}
 		}
 		chRipemd160SHA256 <- matches
 	}()
 
-	chRipemd160SHA256Reversed := make(chan []FileMagicBytesResult)
+	chRipemd160SHA256Reversed := make(chan MagicBytesResult)
 	go func() {
-		matches := []FileMagicBytesResult{}
+		matches := MagicBytesResult{}
 		for _, def := range wlRipemd160SHA256Hashes {
 			if bytes.Contains(data, ReverseBytes(def.MagicData)) {
-				matches = append(matches, FileMagicBytesResult{Filetype: def.Filetype, Reversed: true})
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true})
 			}
 		}
 		chRipemd160SHA256Reversed <- matches
 	}()
 
-	matches := []FileMagicBytesResult{}
+	matches := MagicBytesResult{}
 	matches = append(matches, <-chMatches...)
 	matches = append(matches, <-chMatchesReversed...)
 	matches = append(matches, <-chRipemd160SHA256...)

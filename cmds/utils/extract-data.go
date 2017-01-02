@@ -10,6 +10,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
+	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 )
 
@@ -110,6 +111,14 @@ func ConcatTxInScripts(tx *btcutil.Tx) ([]byte, error) {
 	}
 
 	return allBytes, nil
+}
+
+func GetTxOutAddress(txout *wire.TxOut) ([]btcutil.Address, error) {
+	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txout.PkScript, &chaincfg.MainNetParams)
+	if err != nil {
+		return nil, err
+	}
+	return addresses, nil
 }
 
 func GetTxOutAddresses(tx *btcutil.Tx) ([][]btcutil.Address, error) {

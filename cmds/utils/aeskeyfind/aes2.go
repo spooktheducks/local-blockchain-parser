@@ -2,12 +2,30 @@ package aeskeyfind
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 )
 
 var byteOrder binary.ByteOrder = binary.LittleEndian
 var reverseByteOrder binary.ByteOrder = binary.BigEndian
 
-type Result struct {
+type AESResult struct {
+	FoundKeys []FoundKey
+}
+
+func (r AESResult) IsEmpty() bool {
+	return len(r.FoundKeys) == 0
+}
+
+func (r AESResult) DescriptionStrings() []string {
+	strs := make([]string, len(r.FoundKeys))
+	for i, fk := range r.FoundKeys {
+		strs[i] = fmt.Sprintf("AES-%d %s key (hex: %s) (string: %s)", len(fk.Key)*8, fk.KeyType, hex.EncodeToString(fk.Key), fk.Key)
+	}
+	return strs
+}
+
+type FoundKey struct {
 	KeyType
 	Key []byte
 }
@@ -30,24 +48,21 @@ func (kt KeyType) String() string {
 	}
 }
 
-func Detect(data []byte) chan Result {
-	ch := make(chan Result)
-	go func() {
-		defer close(ch)
-		i := 0
-		for i < len(data)-60 {
-			if key := detectEnc(data[i:]); key != nil {
-				ch <- Result{KeyTypeEncoding, key}
-				i += 28 + len(key)
-			} else if key := detectDec(data[i:]); key != nil {
-				ch <- Result{KeyTypeDecoding, key}
-				i += 28 + len(key)
-			} else {
-				i += 4 // data is considered to be an array of uint32s, so we advance by 4 bytes and restart the search
-			}
+func Detect(data []byte) AESResult {
+	foundKeys := make([]FoundKey, 0)
+	i := 0
+	for i < len(data)-60 {
+		if key := detectEnc(data[i:]); key != nil {
+			foundKeys = append(foundKeys, FoundKey{KeyTypeEncoding, key})
+			i += 28 + len(key)
+		} else if key := detectDec(data[i:]); key != nil {
+			foundKeys = append(foundKeys, FoundKey{KeyTypeDecoding, key})
+			i += 28 + len(key)
+		} else {
+			i += 4 // data is considered to be an array of uint32s, so we advance by 4 bytes and restart the search
 		}
-	}()
-	return ch
+	}
+	return AESResult{FoundKeys: foundKeys}
 }
 
 func detectEnc(ctx []byte) []byte {

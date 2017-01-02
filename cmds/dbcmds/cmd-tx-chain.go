@@ -10,7 +10,13 @@ import (
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
-	// "github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils/aeskeyfind"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detector"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detectoroutput"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasource"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasourceoutput"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txhashsource"
 )
 
 type TxChainCommand struct {
@@ -49,54 +55,58 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
-	// s := &scanner.Scanner{
-	// 	DB:           db,
-	// 	TxHashSource: scanner.NewChainTxHashSource(db, startHash),
-	// 	TxDataSources: []scanner.ITxDataSource{
-	// 		&scanner.InputScriptTxDataSource{},
-	// 		&scanner.OutputScriptTxDataSource{},
-	// 		&scanner.OutputScriptSatoshiTxDataSource{},
-	// 	},
-	// 	DataDetectors: []scanner.IDataDetector{
-	// 		&scanner.PGPDataDetector{},
-	// 		&scanner.PlaintextDetector{},
-	// 	},
-	// 	Outputs: []scanner.IOutput{
-	// 		// &scanner.ConsoleOutput{Prefix: "  - "},
-	// 		&scanner.RawDataOutput{OutDir: cmd.outDir},
-	// 		&scanner.RawDataAggregatorOutput{OutDir: cmd.outDir},
-	// 		// scanner.NewCSVOutput(func (txHash chainhash.Hash, txDataSource ITxDataSource, detector IDataDetector, data []byte, result IDetectionResult) string {
-	// 		// }),
-	// 	},
-	// }
+	s := &scanner.Scanner{
+		DB:           db,
+		TxHashSource: txhashsource.NewChain(db, startHash),
+		TxDataSources: []scanner.ITxDataSource{
+			&txdatasource.InputScripts{},
+			&txdatasource.OutputScripts{},
+			&txdatasource.OutputScriptsSatoshi{},
+		},
+		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
+			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
+		},
+		Detectors: []scanner.IDetector{
+			&detector.PGPPackets{},
+			&detector.AESKeys{},
+			&detector.MagicBytes{},
+			// &detector.Plaintext{},
+		},
+		DetectorOutputs: []scanner.IDetectorOutput{
+			&detectoroutput.Console{Prefix: "  - "},
+			&detectoroutput.RawData{OutDir: cmd.outDir},
+			&detectoroutput.CSV{OutDir: cmd.outDir},
+			&detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
+		},
+	}
 
-	// err = s.Run()
+	err = s.Run()
+	if err != nil {
+		return err
+	}
+
+	return s.Close()
+
+	// foundHashes, err := cmd.getTxs(startHash)
 	// if err != nil {
 	// 	return err
 	// }
 
-	// return s.Close()
+	// err = cmd.processTxs(startHash, foundHashes)
+	// if err != nil {
+	// 	return err
+	// }
 
-	foundHashes, err := cmd.getTxs(startHash)
-	if err != nil {
-		return err
-	}
+	// transactionTxt := ""
+	// for _, h := range foundHashes {
+	// 	transactionTxt = transactionTxt + h.String() + "\n"
+	// }
+	// err = utils.CreateAndWriteFile(filepath.Join(cmd.outDir, "transactions.txt"), []byte(transactionTxt))
+	// if err != nil {
+	// 	return err
+	// }
 
-	err = cmd.processTxs(startHash, foundHashes)
-	if err != nil {
-		return err
-	}
-
-	transactionTxt := ""
-	for _, h := range foundHashes {
-		transactionTxt = transactionTxt + h.String() + "\n"
-	}
-	err = utils.CreateAndWriteFile(filepath.Join(cmd.outDir, "transactions.txt"), []byte(transactionTxt))
-	if err != nil {
-		return err
-	}
-
-	return nil
+	// return nil
 }
 
 func (cmd *TxChainCommand) getTxs(startHash chainhash.Hash) ([]chainhash.Hash, error) {
@@ -205,6 +215,87 @@ func (cmd *TxChainCommand) processTxs(startHash chainhash.Hash, txHashes []chain
 		return err
 	}
 
+	err = cmd.checkAESKeys(txHashes)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cmd *TxChainCommand) checkAESKeys(txHashes []chainhash.Hash) error {
+	csvFilename := filepath.Join(cmd.outDir, "aes-keys.csv")
+	csvFile := utils.NewConditionalFile(csvFilename)
+	defer csvFile.Close()
+
+	_, err := csvFile.WriteString("tx hash,in/out,description\n", false)
+	if err != nil {
+		return err
+	}
+
+	type txDataSource struct {
+		name    string
+		getData func(*btcutil.Tx) ([]byte, error)
+	}
+
+	txDataSources := []txDataSource{
+		{"input", utils.ConcatTxInScripts},
+		{"output", utils.ConcatNonOPHexTokensFromTxOuts},
+		{"output-satoshi", utils.ConcatSatoshiDataFromTxOuts},
+	}
+
+	type IResult interface {
+		DescriptionStrings() []string
+		IsEmpty() bool
+	}
+
+	outputMethods := []func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error{
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			for _, p := range result.DescriptionStrings() {
+				fmt.Printf("  - %v AES key detected: %s\n", txDataSourceName, p)
+			}
+			return nil
+		},
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			for _, p := range result.DescriptionStrings() {
+				_, err := csvFile.WriteString(fmt.Sprintf("%s,%s,%s\n", txHash.String(), txDataSourceName, p), true)
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+		func(txHash chainhash.Hash, txDataSourceName string, data []byte, result IResult) error {
+			if !result.IsEmpty() {
+				return utils.CreateAndWriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("aes-data-%s-%s.dat", txHash.String(), txDataSourceName)), data)
+			}
+			return nil
+		},
+	}
+
+	for _, txHash := range txHashes {
+		tx, err := cmd.db.GetTx(txHash)
+		if err != nil {
+			return err
+		}
+
+		for _, txDataSource := range txDataSources {
+			data, err := txDataSource.getData(tx)
+			if err != nil {
+				continue
+			}
+
+			result := aeskeyfind.Detect(data)
+
+			for _, out := range outputMethods {
+				err := out(txHash, txDataSource.name, data, result)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -213,7 +304,7 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 	csvFile := utils.NewConditionalFile(csvFilename)
 	defer csvFile.Close()
 
-	_, err := csvFile.WriteString("tx hash,input or output,description\n", false)
+	_, err := csvFile.WriteString("tx hash,in/out,description\n", false)
 	if err != nil {
 		return err
 	}
@@ -289,7 +380,7 @@ func (cmd *TxChainCommand) checkFileMagicBytes(txHashes []chainhash.Hash) error 
 	outFile := utils.NewConditionalFile(outFilename)
 	defer outFile.Close()
 
-	_, err := outFile.WriteString("tx hash,input or output,description\n", false)
+	_, err := outFile.WriteString("tx hash,in/out,description\n", false)
 	if err != nil {
 		return err
 	}
@@ -337,7 +428,7 @@ func (cmd *TxChainCommand) checkPlaintext(txHashes []chainhash.Hash) error {
 	outFile := utils.NewConditionalFile(outFilename)
 	defer outFile.Close()
 
-	_, err := outFile.WriteString("tx hash,input or output,text\n", false)
+	_, err := outFile.WriteString("tx hash,in/out,text\n", false)
 	if err != nil {
 		return err
 	}

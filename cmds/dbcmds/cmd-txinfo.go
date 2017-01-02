@@ -56,22 +56,22 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
-	txoutAddrs, err := utils.GetTxOutAddresses(tx)
-	if err != nil {
-		return err
-	}
+	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
+	// if err != nil {
+	// 	return err
+	// }
 
-	for txoutIdx, addrs := range txoutAddrs {
-		if len(addrs) == 0 {
-			fmt.Printf("  - TxOut %v: can't decode address\n", txoutIdx)
-		} else {
-			addrStrings := make([]string, len(addrs))
-			for i := range addrs {
-				addrStrings[i] = addrs[i].String()
-			}
-			fmt.Printf("  - TxOut %v: paid to %v\n", txoutIdx, strings.Join(addrStrings, ", "))
-		}
-	}
+	// for txoutIdx, addrs := range txoutAddrs {
+	// 	if len(addrs) == 0 {
+	// 		fmt.Printf("  - TxOut %v: can't decode address\n", txoutIdx)
+	// 	} else {
+	// 		addrStrings := make([]string, len(addrs))
+	// 		for i := range addrs {
+	// 			addrStrings[i] = addrs[i].String()
+	// 		}
+	// 		fmt.Printf("  - TxOut %v: paid to %v\n", txoutIdx, strings.Join(addrStrings, ", "))
+	// 	}
+	// }
 
 	err = cmd.printOutputsSpentUnspent(db, tx)
 	if err != nil {
@@ -102,19 +102,33 @@ func (cmd *TxInfoCommand) RunCommand() error {
 }
 
 func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcutil.Tx) error {
-	for txoutIdx := range tx.MsgTx().TxOut {
-		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
-
-		spentTxOut, err := db.GetSpentTxOut(key)
+	for txoutIdx, txout := range tx.MsgTx().TxOut {
+		addr, err := utils.GetTxOutAddress(txout)
 		if err != nil {
-			if strings.Contains(err.Error(), "can't find SpentTxOut") {
-				fmt.Printf("  - TxOut %v: unspent\n", txoutIdx)
-				continue
-			}
 			return err
 		}
 
-		fmt.Printf("  - TxOut %v: spent by %v (%v)\n", txoutIdx, spentTxOut.InputTxHash.String(), spentTxOut.TxInIndex)
+		addrString := ""
+		if len(addr) == 0 {
+			addrString = "unable to decode output address"
+		} else {
+			addrString = fmt.Sprintf("%v", addr)
+		}
+
+		spentString := ""
+		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
+		spentTxOut, err := db.GetSpentTxOut(key)
+		if err != nil {
+			if strings.Contains(err.Error(), "can't find SpentTxOut") {
+				spentString = "unspent"
+			} else {
+				return err
+			}
+		} else {
+			spentString = fmt.Sprintf("spent in tx %v (%v)", spentTxOut.InputTxHash.String(), spentTxOut.TxInIndex)
+		}
+
+		fmt.Printf("  - TxOut %v: %v (addr: %v)\n", txoutIdx, spentString, addrString)
 	}
 	return nil
 }

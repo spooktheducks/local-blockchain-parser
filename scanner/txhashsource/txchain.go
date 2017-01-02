@@ -1,4 +1,4 @@
-package scanner
+package txhashsource
 
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
@@ -7,13 +7,13 @@ import (
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
-func NewChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
 
-		chBackwards := NewBackwardChainTxHashSource(db, startHash)
-		chForwards := NewForwardChainTxHashSource(db, startHash)
+		chBackwards := NewBackwardChain(db, startHash)
+		chForwards := NewForwardChain(db, startHash)
 
 		for hash := range chBackwards {
 			ch <- hash
@@ -28,7 +28,7 @@ func NewChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashS
 	return TxHashSource(ch)
 }
 
-func NewForwardChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewForwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
@@ -41,9 +41,9 @@ func NewForwardChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) 
 				panic(err)
 			}
 
-			if !utils.TxHasSuspiciousOutputValues(tx) {
-				break
-			}
+			// if !utils.TxHasSuspiciousOutputValues(tx) {
+			// 	break
+			// }
 			ch <- currentTxHash
 
 			maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
@@ -52,7 +52,8 @@ func NewForwardChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) 
 			spentTxOut, err := db.GetSpentTxOut(key)
 			if err != nil {
 				// @@TODO
-				panic(err)
+				// panic(err)
+				break
 			}
 
 			currentTxHash = spentTxOut.InputTxHash
@@ -62,7 +63,7 @@ func NewForwardChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) 
 	return TxHashSource(ch)
 }
 
-func NewBackwardChainTxHashSource(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewBackwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
