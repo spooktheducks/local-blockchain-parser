@@ -67,7 +67,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 		},
 		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
 			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
-			// &txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
+			&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
 		},
 		Detectors: []scanner.IDetector{
 			&detector.PGPPackets{},
