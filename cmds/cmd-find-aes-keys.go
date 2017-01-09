@@ -108,7 +108,7 @@ func (cmd *FindAESKeysCommand) parseBlock(blockFileNum int, chErr chan error, ch
 				}
 			}
 
-			outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+			outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 			if err != nil {
 				chErr <- err
 				return

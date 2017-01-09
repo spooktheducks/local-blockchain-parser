@@ -130,7 +130,7 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 
 			// extract text from concatenated TxOut hex tokens
 
-			parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+			parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 			if err != nil {
 				chErr <- err
 				return

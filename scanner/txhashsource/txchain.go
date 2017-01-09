@@ -77,16 +77,16 @@ func NewBackwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSourc
 				panic(err)
 			}
 
-			if utils.TxHasSuspiciousOutputValues(tx) {
-				foundHashesReverse = append(foundHashesReverse, currentTxHash)
-				if len(tx.MsgTx().TxIn) == 1 {
-					currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
-				} else {
-					break
-				}
+			// if utils.TxHasSuspiciousOutputValues(tx) {
+			foundHashesReverse = append(foundHashesReverse, currentTxHash)
+			if len(tx.MsgTx().TxIn) == 1 {
+				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash
 			} else {
 				break
 			}
+			// } else {
+			// 	break
+			// }
 		}
 
 		numHashes := len(foundHashesReverse)

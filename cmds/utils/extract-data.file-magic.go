@@ -2,10 +2,10 @@ package utils
 
 import (
 	"bytes"
-	"encoding/hex"
+	// "encoding/hex"
 	"fmt"
-	"io/ioutil"
-	"strings"
+	// "io/ioutil"
+	// "strings"
 )
 
 type (
@@ -17,6 +17,7 @@ type (
 	FoundMagicBytes struct {
 		Filetype string
 		Reversed bool
+		Offset   uint64
 	}
 
 	MagicBytesResult []FoundMagicBytes
@@ -24,9 +25,9 @@ type (
 
 func (f FoundMagicBytes) Description() string {
 	if f.Reversed {
-		return f.Filetype + " (reversed)"
+		return fmt.Sprintf("%s (reversed) [offset %d]", f.Filetype, f.Offset)
 	} else {
-		return f.Filetype
+		return fmt.Sprintf("%s [offset %d]", f.Filetype, f.Offset)
 	}
 }
 
@@ -38,9 +39,9 @@ func (m MagicBytesResult) DescriptionStrings() []string {
 	strs := make([]string, len(m))
 	for i, found := range m {
 		if found.Reversed {
-			strs[i] = found.Filetype + " (reversed)"
+			strs[i] = fmt.Sprintf("%s (reversed) [offset %d]", found.Filetype, found.Offset)
 		} else {
-			strs[i] = found.Filetype
+			strs[i] = fmt.Sprintf("%s [offset %d]", found.Filetype, found.Offset)
 		}
 	}
 	return strs
@@ -85,33 +86,35 @@ var magicBytes = []MagicBytesDef{
 	{"Wikileaks", []byte{0x57, 0x69, 0x6b, 0x69, 0x6c, 0x65, 0x61, 0x6b, 0x73}},
 	{"Julian Assange", []byte{0x4a, 0x75, 0x6c, 0x69, 0x61, 0x6e, 0x20, 0x41, 0x73, 0x73, 0x61, 0x6e, 0x67, 0x65}},
 	{"Mendax", []byte{0x4d, 0x65, 0x6e, 0x64, 0x61, 0x7}},
+	{"Peter Todd OTS hello world", []byte{0x1d, 0xf8, 0x85, 0x9e, 0x60, 0xbc, 0x67, 0x95, 0x03, 0xd1, 0x6d, 0xcb, 0x87, 0x0e, 0x6c, 0xe9, 0x1a, 0x57, 0xe9, 0xdf}},
+	{"OpenTimestamps", []byte("OpenTimestamps")},
 }
 
 var wlRipemd160SHA256Hashes = []MagicBytesDef{}
 
-func init() {
-	data, err := ioutil.ReadFile("./wlhashes/ripemd160-sha256-hashes.txt")
-	if err != nil {
-		panic(err)
-	}
+// func init() {
+// 	data, err := ioutil.ReadFile("./wlhashes/ripemd160-sha256-hashes.txt")
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	lines := strings.Split(string(data), "\n")
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		parts := strings.Split(line, "  ")
-		if len(parts) != 2 {
-			panic(fmt.Sprintf("len(parts) = %v: %v", len(parts), line))
-		}
-		digestHex, filename := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
+// 	lines := strings.Split(string(data), "\n")
+// 	for _, line := range lines {
+// 		line = strings.TrimSpace(line)
+// 		parts := strings.Split(line, "  ")
+// 		if len(parts) != 2 {
+// 			panic(fmt.Sprintf("len(parts) = %v: %v", len(parts), line))
+// 		}
+// 		digestHex, filename := strings.TrimSpace(parts[0]), strings.TrimSpace(parts[1])
 
-		digestBytes, err := hex.DecodeString(digestHex)
-		if err != nil {
-			panic(err)
-		}
+// 		digestBytes, err := hex.DecodeString(digestHex)
+// 		if err != nil {
+// 			panic(err)
+// 		}
 
-		wlRipemd160SHA256Hashes = append(wlRipemd160SHA256Hashes, MagicBytesDef{filename + " (ripemd160 + sha256 digest)", digestBytes})
-	}
-}
+// 		wlRipemd160SHA256Hashes = append(wlRipemd160SHA256Hashes, MagicBytesDef{filename + " (ripemd160 + sha256 digest)", digestBytes})
+// 	}
+// }
 
 func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	if data == nil {
@@ -122,8 +125,8 @@ func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	go func() {
 		matches := MagicBytesResult{}
 		for _, def := range magicBytes {
-			if bytes.Contains(data, def.MagicData) {
-				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false})
+			if idx := bytes.Index(data, def.MagicData); idx > -1 {
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false, Offset: uint64(idx)})
 			}
 		}
 		chMatches <- matches
@@ -133,8 +136,8 @@ func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	go func() {
 		matches := MagicBytesResult{}
 		for _, def := range magicBytes {
-			if bytes.Contains(data, ReverseBytes(def.MagicData)) {
-				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true})
+			if idx := bytes.Index(data, ReverseBytes(def.MagicData)); idx > -1 {
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true, Offset: uint64(idx)})
 			}
 		}
 		chMatchesReversed <- matches
@@ -144,8 +147,8 @@ func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	go func() {
 		matches := MagicBytesResult{}
 		for _, def := range wlRipemd160SHA256Hashes {
-			if bytes.Contains(data, def.MagicData) {
-				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false})
+			if idx := bytes.Index(data, def.MagicData); idx > -1 {
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: false, Offset: uint64(idx)})
 			}
 		}
 		chRipemd160SHA256 <- matches
@@ -155,8 +158,8 @@ func SearchDataForMagicFileBytes(data []byte) MagicBytesResult {
 	go func() {
 		matches := MagicBytesResult{}
 		for _, def := range wlRipemd160SHA256Hashes {
-			if bytes.Contains(data, ReverseBytes(def.MagicData)) {
-				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true})
+			if idx := bytes.Index(data, ReverseBytes(def.MagicData)); idx > -1 {
+				matches = append(matches, FoundMagicBytes{Filetype: def.Filetype, Reversed: true, Offset: uint64(idx)})
 			}
 		}
 		chRipemd160SHA256Reversed <- matches

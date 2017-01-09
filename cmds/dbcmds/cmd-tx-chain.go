@@ -59,12 +59,15 @@ func (cmd *TxChainCommand) RunCommand() error {
 		DB:           db,
 		TxHashSource: txhashsource.NewChain(db, startHash),
 		TxDataSources: []scanner.ITxDataSource{
-			&txdatasource.InputScripts{},
-			&txdatasource.OutputScripts{},
+			&txdatasource.InputScript{},
+			&txdatasource.InputScriptsConcat{},
+			&txdatasource.OutputScript{},
+			&txdatasource.OutputScriptsConcat{},
 			&txdatasource.OutputScriptsSatoshi{},
 		},
 		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
 			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
+			// &txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
 		},
 		Detectors: []scanner.IDetector{
 			&detector.PGPPackets{},
@@ -240,7 +243,7 @@ func (cmd *TxChainCommand) checkAESKeys(txHashes []chainhash.Hash) error {
 
 	txDataSources := []txDataSource{
 		{"input", utils.ConcatTxInScripts},
-		{"output", utils.ConcatNonOPHexTokensFromTxOuts},
+		{"output", utils.ConcatNonOPDataFromTxOuts},
 		{"output-satoshi", utils.ConcatSatoshiDataFromTxOuts},
 	}
 
@@ -316,7 +319,7 @@ func (cmd *TxChainCommand) checkPGPPackets(txHashes []chainhash.Hash) error {
 
 	txDataSources := []txDataSource{
 		{"input", utils.ConcatTxInScripts},
-		{"output", utils.ConcatNonOPHexTokensFromTxOuts},
+		{"output", utils.ConcatNonOPDataFromTxOuts},
 		{"output-satoshi", utils.ConcatSatoshiDataFromTxOuts},
 	}
 
@@ -405,7 +408,7 @@ func (cmd *TxChainCommand) checkFileMagicBytes(txHashes []chainhash.Hash) error 
 			}
 		}
 
-		outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+		outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 		if err != nil {
 			return err
 		}
@@ -453,7 +456,7 @@ func (cmd *TxChainCommand) checkPlaintext(txHashes []chainhash.Hash) error {
 			}
 		}
 
-		outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+		outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 		if err != nil {
 			return err
 		}

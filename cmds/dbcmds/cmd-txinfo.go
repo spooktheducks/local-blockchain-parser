@@ -2,6 +2,7 @@ package dbcmds
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -56,6 +57,20 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
+	var outValues int64
+	for _, txout := range tx.MsgTx().TxOut {
+		outValues += txout.Value
+	}
+	var inValues int64
+	for _, txin := range tx.MsgTx().TxIn {
+		prevTx, err := db.GetTx(txin.PreviousOutPoint.Hash)
+		if err != nil {
+			return err
+		}
+		inValues += prevTx.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
+	}
+	fmt.Printf("  - Fee: %v BTC\n", utils.SatoshisToBTCs(inValues-outValues))
+
 	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	// if err != nil {
 	// 	return err
@@ -78,10 +93,10 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	err = cmd.findPlaintext(tx)
-	if err != nil {
-		return err
-	}
+	// err = cmd.findPlaintext(tx)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = cmd.findFileHeaders(tx)
 	if err != nil {
@@ -96,6 +111,34 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	err = cmd.findGPGData(tx)
 	if err != nil {
 		return err
+	}
+
+	err = os.MkdirAll("output/tx-info/"+tx.Hash().String(), 0777)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Create("output/tx-info/" + tx.Hash().String() + "/txout-data.dat")
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	sf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/satoshi-txout-data.dat")
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+
+	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+	if err != nil {
+		return err
+	}
+	f.Write(data)
+
+	sd, err := utils.GetSatoshiEncodedData(data)
+	if err == nil {
+		sf.Write(sd)
 	}
 
 	return nil
@@ -134,7 +177,7 @@ func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcu
 }
 
 func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
@@ -161,7 +204,7 @@ func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
 }
 
 func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
@@ -193,7 +236,7 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 		}
 	}
 
-	parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
@@ -229,7 +272,7 @@ func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 
 	// extract text from concatenated TxOut hex tokens
 
-	parsedScriptData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}

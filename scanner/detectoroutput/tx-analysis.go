@@ -20,7 +20,7 @@ type CSVTxAnalysis struct {
 // ensure CSVTxAnalysis conforms to scanner.IDetectorOutput
 var _ scanner.IDetectorOutput = &CSVTxAnalysis{}
 
-func (o *CSVTxAnalysis) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, detector scanner.IDetector, data []byte, result scanner.IDetectionResult) error {
+func (o *CSVTxAnalysis) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResult scanner.ITxDataSourceResult, detector scanner.IDetector, result scanner.IDetectionResult) error {
 	o.appendColumnIfUnique(detector.Name())
 
 	txData, exists := o.data[txHash]

@@ -123,7 +123,7 @@ func detectEnc256(ctx []byte, reversed bool) []byte {
 	for {
 		ctx = ctx[4*8:]
 
-		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon[i]
+		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon32[i]
 		if tmp[8] != load(ctx[0:], reversed) {
 			return nil
 		}
@@ -192,7 +192,7 @@ func detectEnc128(ctx []byte, reversed bool) []byte {
 	for i := 0; i < 10; i++ {
 		ctx = ctx[4*4:]
 
-		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon[i]
+		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon32[i]
 		if tmp[4] != load(ctx[0*4:], reversed) {
 			return nil
 		}
@@ -238,7 +238,7 @@ func detectEnc192(ctx []byte, reversed bool) []byte {
 	for {
 		ctx = ctx[6*4:]
 
-		tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[i]
+		tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[i]
 		if tmp[6] != load(ctx[0*4:], reversed) {
 			return nil
 		}
@@ -297,7 +297,7 @@ func detectDec128f(ctx []byte, reversed bool) []byte {
 	for i := 0; i < 9; i++ {
 		ctx = ctx[4*4:]
 
-		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon[i]
+		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon32[i]
 		if tmp[4] != setup_mix2(load(ctx[0*4:], reversed)) {
 			return nil
 		}
@@ -323,7 +323,7 @@ func detectDec128f(ctx []byte, reversed bool) []byte {
 		tmp[3] = tmp[7]
 	}
 
-	tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon[9]
+	tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon32[9]
 	if tmp[4] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -363,7 +363,7 @@ func detectDec128b(ctx []byte, reversed bool) []byte {
 	tmp[3] = load(ctx[43*4:], reversed)
 
 	for i := 0; i < 9; i++ {
-		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon[i]
+		tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon32[i]
 		if tmp[4] != setup_mix2(load(ctx[(36-4*i)*4:], reversed)) {
 			return nil
 		}
@@ -389,7 +389,7 @@ func detectDec128b(ctx []byte, reversed bool) []byte {
 		tmp[3] = tmp[7]
 	}
 
-	tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon[9]
+	tmp[4] = tmp[0] ^ setup_mix(tmp[3]) ^ rcon32[9]
 	if tmp[4] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -431,7 +431,7 @@ func detectDec192f(ctx []byte, reversed bool) []byte {
 
 	for i := 0; i < 7; i++ {
 		ctx = ctx[6*4:]
-		tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[i]
+		tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[i]
 		if tmp[6] != setup_mix2(load(ctx[0*4:], reversed)) {
 			return nil
 		}
@@ -466,7 +466,7 @@ func detectDec192f(ctx []byte, reversed bool) []byte {
 		}
 	}
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[7]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[7]
 	if tmp[6] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -514,7 +514,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 	tmp[4] = setup_mix2(load(ctx[44*4:], reversed))
 	tmp[5] = setup_mix2(load(ctx[45*4:], reversed))
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[0]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[0]
 	if tmp[6] != setup_mix2(load(ctx[46*4:], reversed)) {
 		return nil
 	}
@@ -550,7 +550,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 		tmp[k] = tmp[6+k]
 	}
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[1]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[1]
 	if tmp[6] != setup_mix2(load(ctx[36*4:], reversed)) {
 		return nil
 	}
@@ -586,7 +586,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 		tmp[k] = tmp[6+k]
 	}
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[2]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[2]
 	if tmp[6] != setup_mix2(load(ctx[34*4:], reversed)) {
 		return nil
 	}
@@ -624,7 +624,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 
 	//
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[3]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[3]
 	if tmp[6] != setup_mix2(load(ctx[24*4:], reversed)) {
 		return nil
 	}
@@ -660,7 +660,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 		tmp[k] = tmp[6+k]
 	}
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[4]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[4]
 	if tmp[6] != setup_mix2(load(ctx[22*4:], reversed)) {
 		return nil
 	}
@@ -698,7 +698,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 
 	//
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[5]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[5]
 	if tmp[6] != setup_mix2(load(ctx[12*4:], reversed)) {
 		return nil
 	}
@@ -734,7 +734,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 		tmp[k] = tmp[6+k]
 	}
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[6]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[6]
 	if tmp[6] != setup_mix2(load(ctx[10*4:], reversed)) {
 		return nil
 	}
@@ -772,7 +772,7 @@ func detectDec192b(ctx []byte, reversed bool) []byte {
 
 	//
 
-	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon[7]
+	tmp[6] = tmp[0] ^ setup_mix(tmp[5]) ^ rcon32[7]
 	if tmp[6] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -819,7 +819,7 @@ func detectDec256f(ctx []byte, reversed bool) []byte {
 	for i := 0; i < 6; i++ {
 		ctx = ctx[8*4:]
 
-		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon[i]
+		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon32[i]
 		if tmp[8] != setup_mix2(load(ctx[0*4:], reversed)) {
 			return nil
 		}
@@ -864,7 +864,7 @@ func detectDec256f(ctx []byte, reversed bool) []byte {
 		}
 	}
 
-	tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon[6]
+	tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon32[6]
 	if tmp[8] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -913,7 +913,7 @@ func detectDec256b(ctx []byte, reversed bool) []byte {
 	tmp[7] = setup_mix2(load(ctx[55*4:], reversed))
 
 	for i := 0; i < 6; i++ {
-		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon[i]
+		tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon32[i]
 		if tmp[8] != setup_mix2(load(ctx[(48-8*i)*4:], reversed)) {
 			return nil
 		}
@@ -958,7 +958,7 @@ func detectDec256b(ctx []byte, reversed bool) []byte {
 		}
 	}
 
-	tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon[6]
+	tmp[8] = tmp[0] ^ setup_mix(tmp[7]) ^ rcon32[6]
 	if tmp[8] != load(ctx[0*4:], reversed) {
 		return nil
 	}
@@ -1023,7 +1023,7 @@ func store(x uint32, ptr []byte, reversed bool) {
 	}
 }
 
-var rcon = []uint32{
+var rcon32 = []uint32{
 	0x01000000, 0x02000000, 0x04000000, 0x08000000,
 	0x10000000, 0x20000000, 0x40000000, 0x80000000,
 	0x1B000000, 0x36000000,

@@ -24,11 +24,16 @@ type (
 
 	ITxDataSource interface {
 		Name() string
-		GetData(tx *btcutil.Tx) ([]byte, error)
+		GetData(tx *btcutil.Tx) ([]ITxDataSourceResult, error)
+	}
+
+	ITxDataSourceResult interface {
+		SourceName() string
+		RawData() []byte
 	}
 
 	ITxDataSourceOutput interface {
-		PrintOutput(txDataSource ITxDataSource, data []byte) error
+		PrintOutput(chainhash.Hash, ITxDataSource, []ITxDataSourceResult) error
 		Close() error
 	}
 
@@ -44,7 +49,7 @@ type (
 	}
 
 	IDetectorOutput interface {
-		PrintOutput(txHash chainhash.Hash, txDataSource ITxDataSource, detector IDetector, data []byte, result IDetectionResult) error
+		PrintOutput(txHash chainhash.Hash, txDataSource ITxDataSource, dataResult ITxDataSourceResult, detector IDetector, result IDetectionResult) error
 		Close() error
 	}
 )
@@ -80,29 +85,31 @@ func (s *Scanner) Run() error {
 		}
 
 		for _, txDataSource := range s.TxDataSources {
-			data, err := txDataSource.GetData(tx)
+			dataResults, err := txDataSource.GetData(tx)
 			if err != nil {
 				continue
 				// return err
 			}
 
 			for _, out := range s.TxDataSourceOutputs {
-				err := out.PrintOutput(txDataSource, data)
+				err := out.PrintOutput(txHash, txDataSource, dataResults)
 				if err != nil {
 					return err
 				}
 			}
 
-			for _, d := range s.Detectors {
-				detectionResult, err := d.DetectData(data)
-				if err != nil {
-					return err
-				}
-
-				for _, out := range s.DetectorOutputs {
-					err := out.PrintOutput(txHash, txDataSource, d, data, detectionResult)
+			for _, dataResult := range dataResults {
+				for _, detector := range s.Detectors {
+					detectionResult, err := detector.DetectData(dataResult.RawData())
 					if err != nil {
 						return err
+					}
+
+					for _, out := range s.DetectorOutputs {
+						err := out.PrintOutput(txHash, txDataSource, dataResult, detector, detectionResult)
+						if err != nil {
+							return err
+						}
 					}
 				}
 			}

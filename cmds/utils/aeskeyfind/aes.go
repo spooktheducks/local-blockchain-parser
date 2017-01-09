@@ -1,34 +1,46 @@
 package aeskeyfind
 
-/*
 import (
 	"fmt"
 )
 
-const gThreshold = 10
+const gThreshold = 5
 
-func FindAESKeys(bmap []uint8, last uint) {
+type Uint32Array []byte
+
+func (u32 Uint32Array) Get(i int) uint32 {
+	return byteOrder.Uint32(u32[i*4:])
+}
+
+func FindAESKeys(bmap []byte, last uint) {
 	for i := 0; i < int(last); i++ {
-		if entropy(bmap, i) > 0 {
+		if entropy(bmap, i) {
 			continue
 		}
 
-		// uint32_t* data = (uint32_t*)&(bmap[i]);
-		data := bmap[i:]
+		data := Uint32Array(bmap[i:])
 
 		// Check distance from 256-bit AES key
-		xor_count_256 := 0
+		var xor_count_256 uint
 		for row := 1; row < 8; row++ {
 			for column := 0; column < 8; column++ {
 				if row == 7 && column == 4 {
 					break
 				}
 				if column == 0 {
-					xor_count_256 += popcount(uint64(key_core(data[8*row-1], row)) ^ uint64(data[8*(row-1)]) ^ uint64(data[8*row]))
+					a := data.Get(8*row - 1)
+					b := data.Get(8 * row)
+					xor_count_256 += Popcount(uint64(KeyCore(a, row)) ^ uint64(a) ^ uint64(b))
 				} else if column == 4 {
-					xor_count_256 += popcount(uint64(sbox_bytes(data[8*row+3])) ^ uint64(data[8*(row-1)+4]) ^ uint64(data[8*row+4]))
+					a := data.Get(8*row + 3)
+					b := data.Get(8*(row-1) + 4)
+					c := data.Get(8*row + 4)
+					xor_count_256 += Popcount(uint64(SboxBytes(a)) ^ uint64(b) ^ uint64(c))
 				} else {
-					xor_count_256 += popcount(data[8*row+column-1] ^ data[8*(row-1)+column] ^ data[8*row+column])
+					a := data.Get(8*row + column - 1)
+					b := data.Get(8*(row-1) + column)
+					c := data.Get(8*row + column)
+					xor_count_256 += Popcount(uint64(a) ^ uint64(b) ^ uint64(c))
 				}
 			}
 			if xor_count_256 > gThreshold {
@@ -40,17 +52,18 @@ func FindAESKeys(bmap []uint8, last uint) {
 		}
 
 		// Check distance from 128-bit AES key
-		xor_count_128 := 0
+		var xor_count_128 uint
 		for row := 1; row < 11; row++ {
 			for column := 0; column < 4; column++ {
 				if column == 0 {
-					xor_count_128 += popcount(key_core(data[4*row-1], row) ^
-						data[4*(row-1)] ^
-						data[4*row])
+					a := data.Get(4*row - 1)
+					b := data.Get(4 * row)
+					xor_count_128 += Popcount(uint64(KeyCore(a, row)) ^ uint64(a) ^ uint64(b))
 				} else {
-					xor_count_128 += popcount((data[4*row+column-1] ^
-						data[4*(row-1)+column]) ^
-						data[4*row+column])
+					a := data.Get(4*row + column - 1)
+					b := data.Get(4*(row-1) + column)
+					c := data.Get(4*row + column)
+					xor_count_128 += Popcount(uint64(a^b) ^ uint64(c))
 				}
 			}
 			if xor_count_128 > gThreshold {
@@ -66,19 +79,19 @@ func FindAESKeys(bmap []uint8, last uint) {
 var entropyNewCall = true
 var entropyByteFreq [256]int
 
-func entropy(bmap []uint32, i int) int {
+func entropy(bmap []byte, i int) bool {
 	if entropyNewCall {
-		for i := 0; i < 176; i++ {
-			entropyByteFreq[bmap[i]]++
-		}
-
 		entropyNewCall = false
+
+		for i := 0; i < 176; i++ {
+			entropyByteFreq[int(bmap[i])]++
+		}
 	}
 
-	test := 0
+	test := false
 	for b := 0; b <= 0xff; b++ {
 		if entropyByteFreq[b] > 8 {
-			test = 1
+			test = true
 			break
 		}
 	}
@@ -93,14 +106,14 @@ func bit(vector uint32, n uint) int {
 }
 
 // Set byte n of vector to val.
-func set_byte(vector uint32, n uint, val uint8) uint32 {
+func SetByte(vector uint32, n uint, val uint8) uint32 {
 	return (vector & ^uint32(0xff<<(8*n))) | (uint32(val) << (8 * n))
 }
 
 // Return byte n of vector.
-func get_byte(vector uint32, n uint) uint8 {
-	return uint8((vector >> (8 * n)) & 0xff)
-}
+// func get_byte(vector uint32, n uint) uint8 {
+// 	return uint8((vector >> (8 * n)) & 0xff)
+// }
 
 // extern const uint64_t m1; // binary: 0101...
 // extern const uint64_t m2; // binary: 00110011..
@@ -108,7 +121,7 @@ func get_byte(vector uint32, n uint) uint8 {
 // extern const uint64_t h01; // the sum of 256 to the power of 0,1,2,3...
 
 // // Return the number of bits in x that are 1.
-func popcount(x uint64) uint {
+func Popcount(x uint64) uint {
 	x -= (x >> 1) & m1             // put count of each 2 bits into those 2 bits
 	x = (x & m2) + ((x >> 2) & m2) // put count of each 4 bits into those 4 bits
 	x = (x + (x >> 4)) & m4        // put count of each 8 bits into those 8 bits
@@ -120,19 +133,19 @@ func popcount(x uint64) uint {
 
 // Perform the AES key core operation on a word.
 // (Assumes the standard byte order.)
-func key_core(k uint32, i int) uint32 {
+func KeyCore(k uint32, i int) uint32 {
 	var t uint32
 	for j := uint(0); j < 4; j++ {
-		t = set_byte(t, (j-1)%4, sbox[get_byte(k, j)])
+		t = SetByte(t, (j-1)%4, sbox[get_byte(k, j)])
 	}
-	return set_byte(t, 0, get_byte(t, 0)^rcon[i])
+	return SetByte(t, 0, get_byte(t, 0)^rcon[i])
 }
 
 // Run each byte of a word through the sbox separately for word 4 of 256-bit AES.
-func sbox_bytes(k uint32) uint32 {
+func SboxBytes(k uint32) uint32 {
 	var r uint32
 	for j := uint(0); j < 4; j++ {
-		r = set_byte(r, j, sbox[get_byte(k, j)])
+		r = SetByte(r, j, sbox[get_byte(k, j)])
 	}
 	return r
 }
@@ -181,10 +194,60 @@ const m2 uint64 = 0x3333333333333333  // binary: 00110011..
 const m4 uint64 = 0x0f0f0f0f0f0f0f0f  // binary:  4 zeros,  4 ones ...
 const h01 uint64 = 0x0101010101010101 // the sum of 256 to the power of 0,1,2,3...
 
+func print_key(data Uint32Array, numBits int, address int) {
+	// if (gVerbose) {
+	fmt.Printf("FOUND POSSIBLE %d-BIT KEY AT BYTE %d \n\n", numBits, address)
+	fmt.Printf("KEY: ")
+	// }
+
+	numWords := numBits / 32
+	for col := 0; col < numWords; col++ {
+		print_word(data.Get(col))
+	}
+	fmt.Println()
+
+	// if (gVerbose) {
+	fmt.Println()
+	fmt.Println("EXTENDED KEY:")
+
+	var num_roundkeys int
+	if numBits == 256 {
+		num_roundkeys = 15
+	} else if numBits == 128 {
+		num_roundkeys = 11
+	}
+	for row := 0; row < num_roundkeys; row++ {
+		for column := 0; column < 4; column++ {
+			print_word(data.Get(4*row + column))
+		}
+		fmt.Println()
+	}
+
+	fmt.Println()
+	fmt.Println("CONSTRAINTS ON ROWS:")
+
+	for row := 1; row < num_roundkeys; row++ {
+		for column := 0; column < numWords; column++ {
+			if numBits == 256 && row == 7 && column >= 4 {
+				break
+			}
+			if column == 0 {
+				print_word(KeyCore(data.Get(numWords*row-1), row) ^ data.Get(numWords*(row-1)) ^ data.Get(numWords*row))
+			} else if column == 4 {
+				print_word(SboxBytes(data.Get(numWords*row+3)) ^ data.Get(numWords*(row-1)+4) ^ data.Get(numWords*row+4))
+			} else {
+				print_word(data.Get(numWords*row+column-1) ^ data.Get(numWords*(row-1)+column) ^ data.Get(numWords*row+column))
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+	// }
+}
+
 // Print a word in order byte0 byte1 byte2 byte3
 func print_word(word uint32) {
-	for byte := 0; byte < 4; byte++ {
-		fmt.Printf("%02x", get_byte(word, byte))
+	for i := uint(0); i < 4; i++ {
+		fmt.Printf("%02x", get_byte(word, i))
 	}
 }
-*/

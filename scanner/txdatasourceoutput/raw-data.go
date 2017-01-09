@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 )
@@ -16,20 +18,22 @@ type RawData struct {
 // ensure RawData conforms to ITxDataSourceOutput
 var _ scanner.ITxDataSourceOutput = &RawData{}
 
-func (o *RawData) PrintOutput(txDataSource scanner.ITxDataSource, data []byte) error {
+func (o *RawData) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
 	outFile, exists := o.outFiles[txDataSource.Name()]
 	if !exists {
 		if o.outFiles == nil {
 			o.outFiles = make(map[string]*utils.ConditionalFile)
 		}
-		filename := fmt.Sprintf("%s-aggregated.dat", txDataSource.Name())
+		filename := fmt.Sprintf("all-%s-concatenated.dat", txDataSource.Name())
 		outFile = utils.NewConditionalFile(filepath.Join(o.OutDir, filename))
 		o.outFiles[txDataSource.Name()] = outFile
 	}
 
-	_, err := outFile.Write(data, true)
-	if err != nil {
-		return err
+	for _, result := range dataResults {
+		_, err := outFile.Write(result.RawData(), true)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

@@ -18,7 +18,7 @@ func (r PGPPacketResult) IsEmpty() bool {
 func (r PGPPacketResult) DescriptionStrings() []string {
 	strs := make([]string, len(r.Packets))
 	for i, p := range r.Packets {
-		strs[i] = fmt.Sprintf("%+v", p)
+		strs[i] = fmt.Sprintf("%T", p)
 	}
 	return strs
 }

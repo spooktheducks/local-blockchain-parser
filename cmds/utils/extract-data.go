@@ -79,7 +79,7 @@ func GetNonOPBytes(scriptData []byte) ([]byte, error) {
 	return bs, nil
 }
 
-func ConcatNonOPHexTokensFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
+func ConcatNonOPDataFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
 	allBytes := []byte{}
 
 	for _, txout := range tx.MsgTx().TxOut {
@@ -95,7 +95,7 @@ func ConcatNonOPHexTokensFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
 }
 
 func ConcatSatoshiDataFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
-	data, err := ConcatNonOPHexTokensFromTxOuts(tx)
+	data, err := ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return nil, err
 	}

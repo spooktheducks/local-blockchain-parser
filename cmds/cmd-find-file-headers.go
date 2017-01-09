@@ -132,7 +132,7 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 				}
 			}
 
-			outData, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+			outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
 			if err != nil {
 				chErr <- err
 				return

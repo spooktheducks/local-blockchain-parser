@@ -15,9 +15,9 @@ type Console struct {
 // ensure Console conforms to scanner.IDetectorOutput
 var _ scanner.IDetectorOutput = &Console{}
 
-func (o *Console) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, detector scanner.IDetector, data []byte, result scanner.IDetectionResult) error {
+func (o *Console) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResult scanner.ITxDataSourceResult, detector scanner.IDetector, result scanner.IDetectionResult) error {
 	for _, str := range result.DescriptionStrings() {
-		fmt.Printf("%s%s %s: %s: %s\n", o.Prefix, txHash.String(), detector.Name(), txDataSource.Name(), str)
+		fmt.Printf("%s%s %s: %s: %s\n", o.Prefix, txHash.String(), detector.Name(), dataResult.SourceName(), str)
 	}
 	return nil
 }

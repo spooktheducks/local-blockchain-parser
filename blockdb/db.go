@@ -450,7 +450,7 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 }
 
 func (db *BlockDB) PutTxOutDuplicateData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
@@ -488,7 +488,7 @@ func (db *BlockDB) GetTxOutDuplicateData(txHash chainhash.Hash) ([]chainhash.Has
 		return nil, err
 	}
 
-	data, err := utils.ConcatNonOPHexTokensFromTxOuts(tx)
+	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return nil, err
 	}
