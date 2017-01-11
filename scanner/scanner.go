@@ -1,6 +1,8 @@
 package scanner
 
 import (
+	"fmt"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcutil"
 
@@ -81,14 +83,16 @@ func (s *Scanner) Run() error {
 
 		tx, err := s.DB.GetTx(txHash)
 		if err != nil {
+			fmt.Printf("cannot get tx %v\n", txHash)
 			return err
 		}
 
 		for _, txDataSource := range s.TxDataSources {
 			dataResults, err := txDataSource.GetData(tx)
 			if err != nil {
+				// if a data source returns an error, we assume that means there's
+				// no data of that type, so we just continue to the next source
 				continue
-				// return err
 			}
 
 			for _, out := range s.TxDataSourceOutputs {

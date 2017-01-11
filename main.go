@@ -74,6 +74,22 @@ func main() {
 					},
 				},
 				{
+					Name: "scan-address",
+					Flags: []cli.Flag{
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+					},
+					Action: func(c *cli.Context) error {
+						dbFile, outDir := c.String("dbFile"), c.String("outDir")
+						address := c.Args().Get(0)
+						if address == "" {
+							return fmt.Errorf("must specify address")
+						}
+						cmd := dbcmds.NewScanAddressCommand(cfg.DatFileDir, dbFile, outDir, address)
+						return cmd.RunCommand()
+					},
+				},
+				{
 					Name: "duplicates",
 					Flags: []cli.Flag{
 						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},

@@ -89,9 +89,9 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	// }
 
 	err = cmd.printOutputsSpentUnspent(db, tx)
-	if err != nil {
-		return err
-	}
+	// if err != nil {
+	// 	return err
+	// }
 
 	// err = cmd.findPlaintext(tx)
 	// if err != nil {
@@ -124,21 +124,32 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 	defer f.Close()
 
-	sf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/satoshi-txout-data.dat")
-	if err != nil {
-		return err
-	}
-	defer sf.Close()
-
 	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
 	if err != nil {
 		return err
 	}
 	f.Write(data)
 
+	sf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/satoshi-txout-data.dat")
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+
 	sd, err := utils.GetSatoshiEncodedData(data)
 	if err == nil {
 		sf.Write(sd)
+	}
+
+	inf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/txin-data.dat")
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+
+	data, err = utils.ConcatTxInScripts(tx)
+	if err == nil {
+		inf.Write(data)
 	}
 
 	return nil

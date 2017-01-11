@@ -227,6 +227,22 @@ func (db *BlockDB) putTxIndexRows(keys []chainhash.Hash, rows []TxIndexRow) erro
 }
 
 func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
+	if blockHash.String() == "0000000000000000017275d59d5ab479d0df454acad34227abf3d2911e253914" {
+		// panic("DAT BLOCK")
+		return BlockIndexRow{}, fmt.Errorf("dat block :(")
+	}
+
+	hasBytes := false
+	for i := range blockHash {
+		if blockHash[i] != 0x00 {
+			hasBytes = true
+			break
+		}
+	}
+	if !hasBytes {
+		panic("NO BYTES")
+	}
+
 	row, err := db.getBlockIndexRowFromDB(blockHash)
 	if err == nil {
 		return row, nil
@@ -276,7 +292,7 @@ func (db *BlockDB) getBlockIndexRowFromDB(blockHash chainhash.Hash) (BlockIndexR
 
 func (db *BlockDB) getBlockIndexRowFromDATFiles(blockHash chainhash.Hash, startDatIdx uint16) (BlockIndexRow, error) {
 	for i := startDatIdx; ; i++ {
-		fmt.Printf("\rsearching for block in DAT file %v", i)
+		fmt.Printf("\rsearching for block %v in DAT file %v", blockHash.String(), i)
 
 		blocks, err := db.LoadBlocksFromDAT(i)
 		if err != nil {
@@ -332,6 +348,7 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, error) {
 		err = db.putTxIndexRows([]chainhash.Hash{txHash}, []TxIndexRow{row})
 		return row, err
 	}
+	fmt.Printf("error: tx index row %v not found\n", txHash.String())
 	return row, err
 }
 
@@ -404,6 +421,7 @@ func (db *BlockDB) GetTx(txHash chainhash.Hash) (*btcutil.Tx, error) {
 
 	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
 	if err != nil {
+		fmt.Printf("block index row %v not found\n", txRow.BlockHash.String())
 		return nil, err
 	}
 
@@ -655,12 +673,16 @@ func (db *BlockDB) PutSpentTxOuts(keys []SpentTxOutKey, vals []SpentTxOutRow) er
 	return err
 }
 
+var (
+	errNotFoundDB = fmt.Errorf("not found in db")
+)
+
 func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 	var row SpentTxOutRow
 	err := db.store.View(func(boltTx *bolt.Tx) error {
 		bucket := boltTx.Bucket([]byte(BucketSpentTxOuts))
 		if bucket == nil {
-			return DataNotIndexedError{Index: "spent-txouts"}
+			return errNotFoundDB //DataNotIndexedError{Index: "spent-txouts"}
 		}
 
 		keyBytes, err := key.ToBytes()
@@ -670,7 +692,7 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 
 		valBytes := bucket.Get(keyBytes)
 		if valBytes == nil {
-			return fmt.Errorf("can't find SpentTxOut %+v", key)
+			return errNotFoundDB
 		}
 
 		row, err = NewSpentTxOutRowFromBytes(valBytes)
@@ -680,6 +702,32 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 
 		return nil
 	})
+
+	if err == errNotFoundDB {
+		return row, err
+
+		tx, err := db.GetTx(key.TxHash)
+		if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return row, err
+		}
+
+		fmt.Printf("requesting spent txout %v from api...", key)
+		row, err = (&BlockchainInfoAPI{}).GetSpentTxOut(tx, key.TxOutIndex)
+		if err == errBlockchainAPINotFound {
+			fmt.Printf(" not found\n")
+			return row, fmt.Errorf("can't find SpentTxOut %+v", key)
+		} else if err != nil {
+			fmt.Printf("error: %v\n", err)
+			return row, err
+		}
+		// fmt.Printf("FOUND: %+v\n", row)
+		// return row, err
+	} else if err != nil {
+		fmt.Printf("error: %v\n", err)
+	} else {
+		err = db.PutSpentTxOut(key, row)
+	}
 
 	return row, err
 }
