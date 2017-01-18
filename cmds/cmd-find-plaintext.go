@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type (
@@ -86,7 +87,9 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 	for _, bl := range blocks {
 		blockHash := bl.Hash().String()
 
-		for _, tx := range bl.Transactions() {
+		for _, btctx := range bl.Transactions() {
+			tx := Tx{Tx: btctx}
+
 			txHash := tx.Hash().String()
 
 			// extract text from each TxIn scriptSig
@@ -130,7 +133,7 @@ func (cmd *FindPlaintextCommand) parseBlock(blockFileNum int, chErr chan error, 
 
 			// extract text from concatenated TxOut hex tokens
 
-			parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
+			parsedScriptData, err := tx.ConcatNonOPDataFromTxOuts()
 			if err != nil {
 				chErr <- err
 				return

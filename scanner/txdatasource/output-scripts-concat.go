@@ -1,10 +1,8 @@
 package txdatasource
 
 import (
-	"github.com/btcsuite/btcutil"
-
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type OutputScriptsConcat struct{}
@@ -21,8 +19,8 @@ func (ds *OutputScriptsConcat) Name() string {
 	return "outputs-concatenated"
 }
 
-func (ds *OutputScriptsConcat) GetData(tx *btcutil.Tx) ([]scanner.ITxDataSourceResult, error) {
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+func (ds *OutputScriptsConcat) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return nil, err
 	}

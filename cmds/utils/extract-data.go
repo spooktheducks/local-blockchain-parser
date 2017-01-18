@@ -8,10 +8,10 @@ import (
 	"hash/crc32"
 	"strings"
 
-	"github.com/btcsuite/btcd/chaincfg"
+	// "github.com/btcsuite/btcd/chaincfg"
 	"github.com/btcsuite/btcd/txscript"
-	"github.com/btcsuite/btcd/wire"
-	"github.com/btcsuite/btcutil"
+	// "github.com/btcsuite/btcd/wire"
+	// "github.com/btcsuite/btcutil"
 )
 
 func GetSatoshiEncodedData(data []byte) ([]byte, error) {
@@ -77,86 +77,4 @@ func GetNonOPBytes(scriptData []byte) ([]byte, error) {
 	}
 
 	return bs, nil
-}
-
-func ConcatNonOPDataFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
-	allBytes := []byte{}
-
-	for _, txout := range tx.MsgTx().TxOut {
-		bs, err := GetNonOPBytes(txout.PkScript)
-		if err != nil {
-			continue
-		}
-
-		allBytes = append(allBytes, bs...)
-	}
-
-	return allBytes, nil
-}
-
-func ConcatSatoshiDataFromTxOuts(tx *btcutil.Tx) ([]byte, error) {
-	data, err := ConcatNonOPDataFromTxOuts(tx)
-	if err != nil {
-		return nil, err
-	}
-
-	return GetSatoshiEncodedData(data)
-}
-
-func ConcatTxInScripts(tx *btcutil.Tx) ([]byte, error) {
-	allBytes := []byte{}
-
-	for _, txin := range tx.MsgTx().TxIn {
-		allBytes = append(allBytes, txin.SignatureScript...)
-	}
-
-	return allBytes, nil
-}
-
-func GetTxOutAddress(txout *wire.TxOut) ([]btcutil.Address, error) {
-	_, addresses, _, err := txscript.ExtractPkScriptAddrs(txout.PkScript, &chaincfg.MainNetParams)
-	if err != nil {
-		return nil, err
-	}
-	return addresses, nil
-}
-
-func GetTxOutAddresses(tx *btcutil.Tx) ([][]btcutil.Address, error) {
-	addrs := make([][]btcutil.Address, len(tx.MsgTx().TxOut))
-
-	for i, txout := range tx.MsgTx().TxOut {
-		_, addresses, _, err := txscript.ExtractPkScriptAddrs(txout.PkScript, &chaincfg.MainNetParams)
-		if err != nil {
-			return nil, err
-		}
-		addrs[i] = addresses
-	}
-
-	return addrs, nil
-}
-
-func FindMaxValueTxOut(tx *btcutil.Tx) int {
-	var maxValue int64
-	var maxValueIdx int
-	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		if txout.Value > maxValue {
-			maxValue = txout.Value
-			maxValueIdx = txoutIdx
-		}
-	}
-	return maxValueIdx
-}
-
-func TxHasSuspiciousOutputValues(tx *btcutil.Tx) bool {
-	numTinyValues := 0
-	for _, txout := range tx.MsgTx().TxOut {
-		if SatoshisToBTCs(txout.Value) == 0.00000001 {
-			numTinyValues++
-		}
-	}
-
-	if numTinyValues > 0 && numTinyValues == len(tx.MsgTx().TxOut)-1 {
-		return true
-	}
-	return false
 }

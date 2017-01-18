@@ -4,7 +4,6 @@ import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 func NewChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
@@ -46,9 +45,7 @@ func NewForwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource
 			// }
 			ch <- currentTxHash
 
-			maxValueTxoutIdx := utils.FindMaxValueTxOut(tx)
-
-			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(maxValueTxoutIdx)}
+			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(tx.FindMaxValueTxOut())}
 			spentTxOut, err := db.GetSpentTxOut(key)
 			if err != nil {
 				// @@TODO
@@ -68,9 +65,16 @@ func NewBackwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSourc
 	go func() {
 		defer close(ch)
 
+		emptyHash := chainhash.Hash{}
+
 		foundHashesReverse := []chainhash.Hash{}
 		currentTxHash := startHash
 		for {
+			if currentTxHash == emptyHash {
+				// this is the coinbase, so we can't follow further backwards
+				break
+			}
+
 			tx, err := db.GetTx(currentTxHash)
 			if err != nil {
 				// @@TODO

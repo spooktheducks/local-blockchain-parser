@@ -21,6 +21,10 @@ var _ scanner.ITxDataSourceOutput = &RawDataEachDataSource{}
 
 func (o *RawDataEachDataSource) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
 	for _, result := range dataResults {
+		if len(result.RawData()) == 0 {
+			continue
+		}
+
 		filename := filepath.Join(o.OutDir, fmt.Sprintf("%s-%s.dat", txHash.String(), result.SourceName()))
 		err := ioutil.WriteFile(filename, result.RawData(), 0666)
 		if err != nil {

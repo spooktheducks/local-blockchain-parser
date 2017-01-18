@@ -3,10 +3,9 @@ package txdatasource
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcutil"
-
 	// "github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type InputScript struct{}
@@ -26,7 +25,7 @@ func (ds *InputScript) Name() string {
 	return "txin-script"
 }
 
-func (ds *InputScript) GetData(tx *btcutil.Tx) ([]scanner.ITxDataSourceResult, error) {
+func (ds *InputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 	results := []scanner.ITxDataSourceResult{}
 	for txinIdx, txin := range tx.MsgTx().TxIn {
 		results = append(results, InputScriptResult{rawData: txin.SignatureScript, index: txinIdx})

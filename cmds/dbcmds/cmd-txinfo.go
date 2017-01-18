@@ -6,10 +6,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/btcsuite/btcutil"
-
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type TxInfoCommand struct {
@@ -38,15 +37,15 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	txRow, err := db.GetTxIndexRow(txHash)
-	if err != nil {
-		return err
-	}
+	// txRow, err := db.GetTxIndexRow(txHash)
+	// if err != nil {
+	// 	return err
+	// }
 
-	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
-	if err != nil {
-		return err
-	}
+	// blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
+	// if err != nil {
+	// 	return err
+	// }
 
 	tx, err := db.GetTx(txHash)
 	if err != nil {
@@ -54,22 +53,14 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
-	fmt.Printf("  - Block %v (%v) (%v)\n", txRow.BlockHash, blockRow.DATFilename(), time.Unix(blockRow.Timestamp, 0))
+	fmt.Printf("  - Block %v (%v) (%v)\n", tx.BlockHash, tx.DATFilename(), time.Unix(tx.BlockTimestamp, 0))
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
-	var outValues int64
-	for _, txout := range tx.MsgTx().TxOut {
-		outValues += txout.Value
+	fee, err := tx.Fee()
+	if err != nil {
+		return err
 	}
-	var inValues int64
-	for _, txin := range tx.MsgTx().TxIn {
-		prevTx, err := db.GetTx(txin.PreviousOutPoint.Hash)
-		if err != nil {
-			return err
-		}
-		inValues += prevTx.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
-	}
-	fmt.Printf("  - Fee: %v BTC\n", utils.SatoshisToBTCs(inValues-outValues))
+	fmt.Printf("  - Fee: %v BTC\n", fee)
 
 	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	// if err != nil {
@@ -88,7 +79,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	// 	}
 	// }
 
-	err = cmd.printOutputsSpentUnspent(db, tx)
+	// err = cmd.printOutputsSpentUnspent(db, tx)
 	// if err != nil {
 	// 	return err
 	// }
@@ -124,7 +115,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 	defer f.Close()
 
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
@@ -147,7 +138,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	}
 	defer sf.Close()
 
-	data, err = utils.ConcatTxInScripts(tx)
+	data, err = tx.ConcatTxInScripts()
 	if err == nil {
 		inf.Write(data)
 	}
@@ -155,9 +146,9 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	return nil
 }
 
-func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcutil.Tx) error {
-	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		addr, err := utils.GetTxOutAddress(txout)
+func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *Tx) error {
+	for txoutIdx := range tx.MsgTx().TxOut {
+		addr, err := tx.GetTxOutAddress(txoutIdx)
 		if err != nil {
 			return err
 		}
@@ -170,8 +161,7 @@ func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcu
 		}
 
 		spentString := ""
-		key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)}
-		spentTxOut, err := db.GetSpentTxOut(key)
+		spentTxOut, err := db.GetSpentTxOut(blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
 		if err != nil {
 			if strings.Contains(err.Error(), "can't find SpentTxOut") {
 				spentString = "unspent"
@@ -187,8 +177,8 @@ func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *btcu
 	return nil
 }
 
-func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+func (cmd *TxInfoCommand) findGPGData(tx *Tx) error {
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
@@ -214,8 +204,8 @@ func (cmd *TxInfoCommand) findGPGData(tx *btcutil.Tx) error {
 	return nil
 }
 
-func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *Tx) error {
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
@@ -230,7 +220,7 @@ func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *btcutil.Tx) error {
 	return nil
 }
 
-func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
+func (cmd *TxInfoCommand) findFileHeaders(tx *Tx) error {
 	// check TxIn scripts for known file headers/footers
 	for txinIdx, txin := range tx.MsgTx().TxIn {
 		matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
@@ -247,7 +237,7 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 		}
 	}
 
-	parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
+	parsedScriptData, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
@@ -260,7 +250,7 @@ func (cmd *TxInfoCommand) findFileHeaders(tx *btcutil.Tx) error {
 	return nil
 }
 
-func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
+func (cmd *TxInfoCommand) findPlaintext(tx *Tx) error {
 	// extract text from each TxIn scriptSig
 	for txinIdx, txin := range tx.MsgTx().TxIn {
 		txt := utils.StripNonTextBytes(txin.SignatureScript)
@@ -283,7 +273,7 @@ func (cmd *TxInfoCommand) findPlaintext(tx *btcutil.Tx) error {
 
 	// extract text from concatenated TxOut hex tokens
 
-	parsedScriptData, err := utils.ConcatNonOPDataFromTxOuts(tx)
+	parsedScriptData, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}

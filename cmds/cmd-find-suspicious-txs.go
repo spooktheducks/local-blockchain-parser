@@ -5,9 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/btcsuite/btcutil"
-
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 func FindSuspiciousTxs(startBlock, endBlock uint64, datFileDir, outDir string) error {
@@ -70,32 +69,16 @@ func findSuspiciousTxsParseBlock(datFileDir string, outDir string, blockFileNum 
 		blockTimestamp := bl.MsgBlock().Header.Timestamp
 		csvFile.WriteString("======= " + blockTimestamp.String() + " =======\n")
 
-		for _, tx := range bl.Transactions() {
+		for _, btctx := range bl.Transactions() {
+			tx := Tx{Tx: btctx}
+
 			txHash := tx.Hash().String()
 
-			if isSuspiciousTx(tx) {
+			if tx.HasSuspiciousOutputValues() {
 				numInputs := len(tx.MsgTx().TxIn)
 				numOutputs := len(tx.MsgTx().TxOut)
 				csvFile.WriteString(fmt.Sprintf("%v,%v,%v,%v\n", blockHash, txHash, numInputs, numOutputs))
 			}
 		}
 	}
-}
-
-func isSuspiciousTx(tx *btcutil.Tx) bool {
-	if len(tx.MsgTx().TxOut) < 2 {
-		return false
-	}
-
-	numTinyValues := 0
-	for _, txout := range tx.MsgTx().TxOut {
-		if utils.SatoshisToBTCs(txout.Value) == 0.00000001 {
-			numTinyValues++
-		}
-	}
-
-	if numTinyValues == len(tx.MsgTx().TxOut)-1 {
-		return true
-	}
-	return false
 }

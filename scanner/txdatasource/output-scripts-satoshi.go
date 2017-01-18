@@ -1,10 +1,8 @@
 package txdatasource
 
 import (
-	"github.com/btcsuite/btcutil"
-
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type OutputScriptsSatoshi struct{}
@@ -21,8 +19,8 @@ func (ds *OutputScriptsSatoshi) Name() string {
 	return "all-txs-outputs-satoshi-concatenated"
 }
 
-func (ds *OutputScriptsSatoshi) GetData(tx *btcutil.Tx) ([]scanner.ITxDataSourceResult, error) {
-	data, err := utils.ConcatSatoshiDataFromTxOuts(tx)
+func (ds *OutputScriptsSatoshi) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
+	data, err := tx.ConcatSatoshiDataFromTxOuts()
 	if err != nil {
 		return nil, err
 	}

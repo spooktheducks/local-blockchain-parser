@@ -168,6 +168,19 @@ func main() {
 		},
 
 		{
+			Name: "graph",
+			Flags: []cli.Flag{
+				cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+			},
+			Action: func(c *cli.Context) error {
+				dbFile, outDir := c.String("dbFile"), c.String("outDir")
+				cmd := dbcmds.NewGraphCommand(cfg.DatFileDir, dbFile, outDir, "")
+				return cmd.RunCommand()
+			},
+		},
+
+		{
 			Name: "suspicious-txs",
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},

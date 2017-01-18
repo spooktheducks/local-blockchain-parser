@@ -16,50 +16,82 @@ func NewAddressTxHashSource(db *blockdb.BlockDB, addr string) TxHashSource {
 	go func() {
 		defer close(ch)
 
-		url := fmt.Sprintf("https://blockchain.info/address/%v?format=json", addr)
-		resp, err := http.Get(url)
-		if err != nil {
-			return
-		}
-		defer resp.Body.Close()
+		var numTxs int
+		{
+			type AddressNTxResponse struct {
+				NumTxs int `json:"n_tx"`
+			}
 
-		bs, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return
-		}
-
-		type TxResponse struct {
-			Hash string `json:"hash"`
-		}
-
-		type AddressResponse struct {
-			Txs []TxResponse `json:"txs"`
-		}
-
-		var addrResp AddressResponse
-		err = json.Unmarshal(bs, &addrResp)
-		if err != nil {
-			return
-		}
-
-		reversedTxs := make([]TxResponse, len(addrResp.Txs))
-
-		for i := range addrResp.Txs {
-			reversedTxs[len(reversedTxs)-i-1] = addrResp.Txs[i]
-		}
-
-		for _, tx := range reversedTxs {
-			fmt.Printf("tx %v\n", tx.Hash)
-			txHash, err := blockdb.HashFromString(tx.Hash)
+			url := fmt.Sprintf("https://blockchain.info/address/%v?format=json", addr)
+			resp, err := http.Get(url)
 			if err != nil {
-				fmt.Println("err decoding tx hash:", err)
+				return
+			}
+			defer resp.Body.Close()
+
+			bs, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
 				return
 			}
 
-			ch <- txHash
+			var ntxResp AddressNTxResponse
+			err = json.Unmarshal(bs, &ntxResp)
+			if err != nil {
+				return
+			}
+
+			numTxs = ntxResp.NumTxs
 		}
 
+		var err error
+		for offset := 0; offset < numTxs; {
+			offset, err = getTxs(addr, offset, ch)
+			if err != nil {
+				fmt.Println("error:", err)
+				return
+			}
+		}
 	}()
 
 	return TxHashSource(ch)
+}
+
+func getTxs(addr string, offset int, ch chan chainhash.Hash) (int, error) {
+	url := fmt.Sprintf("https://blockchain.info/address/%v?format=json&offset=%v&sort=1", addr, offset)
+	resp, err := http.Get(url)
+	if err != nil {
+		return 0, err
+	}
+	defer resp.Body.Close()
+
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return 0, err
+	}
+
+	type TxResponse struct {
+		Hash string `json:"hash"`
+	}
+
+	type AddressResponse struct {
+		Txs []TxResponse `json:"txs"`
+	}
+
+	var addrResp AddressResponse
+	err = json.Unmarshal(bs, &addrResp)
+	if err != nil {
+		return 0, err
+	}
+
+	for _, tx := range addrResp.Txs {
+		txHash, err := blockdb.HashFromString(tx.Hash)
+		if err != nil {
+			fmt.Println("err decoding tx hash:", err)
+			return 0, err
+		}
+
+		ch <- txHash
+	}
+
+	return offset + len(addrResp.Txs), nil
 }

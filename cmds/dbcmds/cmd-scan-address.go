@@ -63,7 +63,7 @@ func (cmd *ScanAddressCommand) RunCommand() error {
 			&detector.PGPPackets{},
 			&detector.AESKeys{},
 			&detector.MagicBytes{},
-			// &detector.Plaintext{},
+			&detector.Plaintext{},
 		},
 		DetectorOutputs: []scanner.IDetectorOutput{
 			&detectoroutput.Console{Prefix: "  - "},

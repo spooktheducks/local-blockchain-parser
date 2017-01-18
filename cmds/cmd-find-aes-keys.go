@@ -7,6 +7,7 @@ import (
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils/aeskeyfind"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type FindAESKeysCommand struct {
@@ -90,10 +91,12 @@ func (cmd *FindAESKeysCommand) parseBlock(blockFileNum int, chErr chan error, ch
 		blockHash := bl.Hash().String()
 
 		// numTxs := len(bl.Transactions())
-		for _, tx := range bl.Transactions() {
+		for _, btctx := range bl.Transactions() {
+			tx := &Tx{Tx: btctx}
+
 			txHash := tx.Hash().String()
 
-			inData, err := utils.ConcatTxInScripts(tx)
+			inData, err := tx.ConcatTxInScripts()
 			if err != nil {
 				chErr <- err
 				return
@@ -108,7 +111,7 @@ func (cmd *FindAESKeysCommand) parseBlock(blockFileNum int, chErr chan error, ch
 				}
 			}
 
-			outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
+			outData, err := tx.ConcatNonOPDataFromTxOuts()
 			if err != nil {
 				chErr <- err
 				return

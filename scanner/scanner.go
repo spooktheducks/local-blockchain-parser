@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type (
@@ -26,7 +26,7 @@ type (
 
 	ITxDataSource interface {
 		Name() string
-		GetData(tx *btcutil.Tx) ([]ITxDataSourceResult, error)
+		GetData(tx *Tx) ([]ITxDataSourceResult, error)
 	}
 
 	ITxDataSourceResult interface {

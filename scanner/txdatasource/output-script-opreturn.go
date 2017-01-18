@@ -3,10 +3,9 @@ package txdatasource
 import (
 	"fmt"
 
-	"github.com/btcsuite/btcutil"
-
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type OutputScriptOpReturn struct{}
@@ -26,7 +25,7 @@ func (ds *OutputScriptOpReturn) Name() string {
 	return "txout-script-opreturn"
 }
 
-func (ds *OutputScriptOpReturn) GetData(tx *btcutil.Tx) ([]scanner.ITxDataSourceResult, error) {
+func (ds *OutputScriptOpReturn) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 	results := []scanner.ITxDataSourceResult{}
 	for txoutIdx, txout := range tx.MsgTx().TxOut {
 		bs, err := utils.GetOPReturnBytes(txout.PkScript)

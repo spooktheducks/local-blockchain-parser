@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type FindFileHeadersCommand struct {
@@ -89,7 +90,9 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 		blockHash := bl.Hash().String()
 
 		// numTxs := len(bl.Transactions())
-		for _, tx := range bl.Transactions() {
+		for _, btctx := range bl.Transactions() {
+			tx := Tx{Tx: btctx}
+
 			txHash := tx.Hash().String()
 
 			/*
@@ -117,7 +120,7 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 					}
 				}*/
 
-			inData, err := utils.ConcatTxInScripts(tx)
+			inData, err := tx.ConcatTxInScripts()
 			if err != nil {
 				chErr <- err
 				return
@@ -132,7 +135,7 @@ func (cmd *FindFileHeadersCommand) parseBlock(blockFileNum int, chErr chan error
 				}
 			}
 
-			outData, err := utils.ConcatNonOPDataFromTxOuts(tx)
+			outData, err := tx.ConcatNonOPDataFromTxOuts()
 			if err != nil {
 				chErr <- err
 				return

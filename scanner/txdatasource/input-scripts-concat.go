@@ -1,10 +1,8 @@
 package txdatasource
 
 import (
-	"github.com/btcsuite/btcutil"
-
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type InputScriptsConcat struct{}
@@ -21,8 +19,8 @@ func (ds *InputScriptsConcat) Name() string {
 	return "inputs-concatenated"
 }
 
-func (ds *InputScriptsConcat) GetData(tx *btcutil.Tx) ([]scanner.ITxDataSourceResult, error) {
-	data, err := utils.ConcatTxInScripts(tx)
+func (ds *InputScriptsConcat) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
+	data, err := tx.ConcatTxInScripts()
 	if err != nil {
 		return nil, err
 	}
