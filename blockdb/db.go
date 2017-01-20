@@ -10,6 +10,7 @@ import (
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type (
@@ -316,7 +317,7 @@ func (db *BlockDB) getBlockIndexRowFromDATFiles(blockHash chainhash.Hash, startD
 	return BlockIndexRow{}, fmt.Errorf("could not find block %v in DAT files", blockHash.String())
 }
 
-func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
+func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*Block, error) {
 	blockRow, err := db.GetBlockIndexRow(blockHash)
 	if err != nil {
 		return nil, err
@@ -327,7 +328,14 @@ func (db *BlockDB) GetBlock(blockHash chainhash.Hash) (*btcutil.Block, error) {
 		return nil, err
 	}
 
-	return block, nil
+	blockWrapped := &Block{
+		Block:          block,
+		DATFileIdx:     blockRow.DATFileIdx,
+		Timestamp:      blockRow.Timestamp,
+		IndexInDATFile: blockRow.IndexInDATFile,
+	}
+
+	return blockWrapped, nil
 }
 
 func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, error) {
@@ -413,12 +421,13 @@ func (db *BlockDB) getTxIndexRowFromBlockchainInfoAPI(txHash chainhash.Hash) (Tx
 	return TxIndexRow{}, fmt.Errorf("BlockDB.getTxIndexRowFromBlockchainInfoAPI: could not find transaction %v", txHash.String())
 }
 
-func (db *BlockDB) GetTx(txHash chainhash.Hash) (*btcutil.Tx, error) {
+func (db *BlockDB) GetTx(txHash chainhash.Hash) (*Tx, error) {
 	txRow, err := db.GetTxIndexRow(txHash)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Printf("%+v\n", txRow)
 	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
 	if err != nil {
 		fmt.Printf("block index row %v not found\n", txRow.BlockHash.String())
@@ -435,7 +444,17 @@ func (db *BlockDB) GetTx(txHash chainhash.Hash) (*btcutil.Tx, error) {
 		return nil, err
 	}
 
-	return tx, nil
+	txWrapped := &Tx{
+		Tx:                  tx,
+		DB:                  db,
+		BlockHash:           txRow.BlockHash,
+		IndexInBlock:        txRow.IndexInBlock,
+		DATFileIdx:          blockRow.DATFileIdx,
+		BlockTimestamp:      blockRow.Timestamp,
+		BlockIndexInDATFile: blockRow.IndexInDATFile,
+	}
+
+	return txWrapped, nil
 }
 
 func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) error {
@@ -455,7 +474,9 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 		}
 
 		for _, bl := range blocks {
-			for _, tx := range bl.Transactions() {
+			for _, btctx := range bl.Transactions() {
+				tx := &Tx{Tx: btctx}
+
 				err = db.PutTxOutDuplicateData(tx)
 				if err != nil {
 					return err
@@ -467,8 +488,8 @@ func (db *BlockDB) IndexDATFileTxOutDuplicates(startBlock, endBlock uint64) erro
 	return nil
 }
 
-func (db *BlockDB) PutTxOutDuplicateData(tx *btcutil.Tx) error {
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+func (db *BlockDB) PutTxOutDuplicateData(tx *Tx) error {
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
@@ -506,7 +527,7 @@ func (db *BlockDB) GetTxOutDuplicateData(txHash chainhash.Hash) ([]chainhash.Has
 		return nil, err
 	}
 
-	data, err := utils.ConcatNonOPDataFromTxOuts(tx)
+	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return nil, err
 	}
@@ -704,8 +725,6 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 	})
 
 	if err == errNotFoundDB {
-		return row, err
-
 		tx, err := db.GetTx(key.TxHash)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)

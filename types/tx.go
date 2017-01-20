@@ -30,6 +30,10 @@ func (tx *Tx) DATFilename() string {
 	return fmt.Sprintf("blk%05d.dat", tx.DATFileIdx)
 }
 
+func (tx *Tx) GetNonOPDataFromTxOut(txoutIdx int) ([]byte, error) {
+	return utils.GetNonOPBytes(tx.MsgTx().TxOut[txoutIdx].PkScript)
+}
+
 func (tx *Tx) ConcatNonOPDataFromTxOuts() ([]byte, error) {
 	allBytes := []byte{}
 

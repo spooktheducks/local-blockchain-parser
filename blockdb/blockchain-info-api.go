@@ -7,9 +7,8 @@ import (
 	"net/http"
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
-	"github.com/btcsuite/btcutil"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type BlockchainInfoAPI struct{}
@@ -94,28 +93,56 @@ var (
 	errBlockchainAPINotFound = fmt.Errorf("not found on blockchain API")
 )
 
-func (api *BlockchainInfoAPI) GetSpentTxOut(tx *btcutil.Tx, txoutIdx uint32) (SpentTxOutRow, error) {
-	txout := tx.MsgTx().TxOut[txoutIdx]
+func getJSON(url string, x interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
 
-	addrs, err := utils.GetTxOutAddress(txout)
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bs, x)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (api *BlockchainInfoAPI) GetSpentTxOut(tx *Tx, txoutIdx uint32) (SpentTxOutRow, error) {
+	addrs, err := tx.GetTxOutAddress(int(txoutIdx))
 	if err != nil {
 		return SpentTxOutRow{}, err
 	}
 
+	{
+		type RawTxResponse struct {
+			TxOuts []struct {
+				Spent    bool   `json:"spent"`
+				TxOutIdx uint32 `json:"n"`
+			} `json:"out"`
+		}
+
+		url := fmt.Sprintf("https://blockchain.info/rawtx/%v", tx.Hash().String())
+
+		var resp RawTxResponse
+		err = getJSON(url, &resp)
+		if err != nil {
+			return SpentTxOutRow{}, err
+		}
+
+		for _, txout := range resp.TxOuts {
+			if txout.TxOutIdx == txoutIdx && txout.Spent == false {
+				return SpentTxOutRow{}, errBlockchainAPINotFound
+			}
+		}
+	}
+
 	for _, addr := range addrs {
-		// fmt.Printf("searching address %v...\n", addr.EncodeAddress())
-		url := fmt.Sprintf("https://blockchain.info/address/%v?format=json", addr.EncodeAddress())
-		resp, err := http.Get(url)
-		if err != nil {
-			return SpentTxOutRow{}, err
-		}
-		defer resp.Body.Close()
-
-		bs, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return SpentTxOutRow{}, err
-		}
-
 		type AddressResponse struct {
 			Txs []struct {
 				Hash   string `json:"hash"`
@@ -129,7 +156,7 @@ func (api *BlockchainInfoAPI) GetSpentTxOut(tx *btcutil.Tx, txoutIdx uint32) (Sp
 		}
 
 		var addrResp AddressResponse
-		err = json.Unmarshal(bs, &addrResp)
+		err = getJSON(fmt.Sprintf("https://blockchain.info/address/%v?format=json", addr.EncodeAddress()), &addrResp)
 		if err != nil {
 			return SpentTxOutRow{}, err
 		}

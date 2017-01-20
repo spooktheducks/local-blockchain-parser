@@ -181,6 +181,20 @@ func main() {
 		},
 
 		{
+			Name: "dump-tx-data",
+			Flags: []cli.Flag{
+				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+			},
+			Action: func(c *cli.Context) error {
+				startBlock, endBlock, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("outDir")
+				cmd := cmds.NewDumpTxDataCommand(startBlock, endBlock, cfg.DatFileDir, outDir)
+				return cmd.RunCommand()
+			},
+		},
+
+		{
 			Name: "suspicious-txs",
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
