@@ -1,7 +1,7 @@
 package dbcmds
 
 import (
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 )
 
 type BuildSpentTxOutIndexCommand struct {
@@ -21,7 +21,7 @@ func NewBuildSpentTxOutIndexCommand(startBlock, endBlock uint64, datFileDir, dbF
 }
 
 func (cmd *BuildSpentTxOutIndexCommand) RunCommand() error {
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}

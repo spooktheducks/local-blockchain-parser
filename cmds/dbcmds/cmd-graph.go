@@ -7,8 +7,8 @@ import (
 
 	// "github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 type GraphCommand struct {
@@ -16,7 +16,7 @@ type GraphCommand struct {
 	datFileDir string
 	walletAddr string
 	outDir     string
-	db         *blockdb.BlockDB
+	db         *BlockDB
 }
 
 type graph struct {
@@ -40,7 +40,7 @@ func (cmd *GraphCommand) RunCommand() error {
 		return err
 	}
 
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func (cmd *GraphCommand) RunCommand() error {
 
 	cmd.db = db
 
-	txHash, err := blockdb.HashFromString("b0800606ee9f5e73868ed6c61b55b802a7454abf06a0d69a7fcabe4904afb665")
+	txHash, err := utils.HashFromString("b0800606ee9f5e73868ed6c61b55b802a7454abf06a0d69a7fcabe4904afb665")
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (cmd *GraphCommand) graphTx(g *graph, tx *Tx) error {
 		g.addrs = append(g.addrs, outAddr)
 		g.entries[tx.Hash().String()] = append(g.entries[tx.Hash().String()], outAddr)
 
-		spentTxOut, err := cmd.db.GetSpentTxOut(blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
+		spentTxOut, err := cmd.db.GetSpentTxOut(SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
 		if err == nil {
 			g.txs = append(g.txs, spentTxOut.InputTxHash.String())
 			g.entries[txoutAddrs[0].String()] = append(g.entries[txoutAddrs[0].String()], spentTxOut.InputTxHash.String())

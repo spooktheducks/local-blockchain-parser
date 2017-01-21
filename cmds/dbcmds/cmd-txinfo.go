@@ -6,9 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type TxInfoCommand struct {
@@ -26,26 +25,16 @@ func NewTxInfoCommand(datFileDir, dbFile, txHash string) *TxInfoCommand {
 }
 
 func (cmd *TxInfoCommand) RunCommand() error {
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	txHash, err := blockdb.HashFromString(cmd.txHash)
+	txHash, err := utils.HashFromString(cmd.txHash)
 	if err != nil {
 		return err
 	}
-
-	// txRow, err := db.GetTxIndexRow(txHash)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
-	// if err != nil {
-	// 	return err
-	// }
 
 	tx, err := db.GetTx(txHash)
 	if err != nil {
@@ -146,7 +135,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	return nil
 }
 
-func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *Tx) error {
+func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *BlockDB, tx *Tx) error {
 	for txoutIdx := range tx.MsgTx().TxOut {
 		addr, err := tx.GetTxOutAddress(txoutIdx)
 		if err != nil {
@@ -161,7 +150,7 @@ func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *blockdb.BlockDB, tx *Tx) 
 		}
 
 		spentString := ""
-		spentTxOut, err := db.GetSpentTxOut(blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
+		spentTxOut, err := db.GetSpentTxOut(SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
 		if err != nil {
 			if strings.Contains(err.Error(), "can't find SpentTxOut") {
 				spentString = "unspent"

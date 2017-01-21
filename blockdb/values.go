@@ -1,4 +1,4 @@
-package types
+package blockdb
 
 type Satoshis int64
 

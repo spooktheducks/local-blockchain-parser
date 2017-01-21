@@ -4,13 +4,14 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detector"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detectoroutput"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasource"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasourceoutput"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txhashsource"
+
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 )
 
 type ScanAddressCommand struct {
@@ -18,7 +19,7 @@ type ScanAddressCommand struct {
 	datFileDir string
 	walletAddr string
 	outDir     string
-	db         *blockdb.BlockDB
+	db         *BlockDB
 }
 
 func NewScanAddressCommand(datFileDir, dbFile, outDir, walletAddr string) *ScanAddressCommand {
@@ -36,7 +37,7 @@ func (cmd *ScanAddressCommand) RunCommand() error {
 		return err
 	}
 
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}
@@ -61,9 +62,9 @@ func (cmd *ScanAddressCommand) RunCommand() error {
 		},
 		Detectors: []scanner.IDetector{
 			&detector.PGPPackets{},
-			&detector.AESKeys{},
+			// &detector.AESKeys{},
 			&detector.MagicBytes{},
-			&detector.Plaintext{},
+			// &detector.Plaintext{},
 		},
 		DetectorOutputs: []scanner.IDetectorOutput{
 			&detectoroutput.Console{Prefix: "  - "},

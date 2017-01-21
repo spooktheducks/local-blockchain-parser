@@ -8,7 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 type BlockchainInfoAPI struct{}
@@ -74,14 +74,14 @@ func (api *BlockchainInfoAPI) GetBlockHashForTx(hash chainhash.Hash) (chainhash.
 
 	for _, bl := range blockHeightResponse.Blocks {
 		for _, tx := range bl.Txs {
-			h, err := HashFromString(tx.HashStr)
+			h, err := utils.HashFromString(tx.HashStr)
 			if err != nil {
 				return outHash, err
 			}
 
 			if h == hash {
 				// fmt.Printf("tx found in block %v\n", bl.HashStr)
-				return HashFromString(bl.HashStr)
+				return utils.HashFromString(bl.HashStr)
 			}
 		}
 	}
@@ -92,26 +92,6 @@ func (api *BlockchainInfoAPI) GetBlockHashForTx(hash chainhash.Hash) (chainhash.
 var (
 	errBlockchainAPINotFound = fmt.Errorf("not found on blockchain API")
 )
-
-func getJSON(url string, x interface{}) error {
-	resp, err := http.Get(url)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	bs, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	err = json.Unmarshal(bs, x)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
 
 func (api *BlockchainInfoAPI) GetSpentTxOut(tx *Tx, txoutIdx uint32) (SpentTxOutRow, error) {
 	addrs, err := tx.GetTxOutAddress(int(txoutIdx))
@@ -167,7 +147,7 @@ func (api *BlockchainInfoAPI) GetSpentTxOut(tx *Tx, txoutIdx uint32) (SpentTxOut
 				prevOutHash := api.getTxHashByTxIndex(txin.PrevOut.TxIndex)
 
 				if prevOutHash == tx.Hash().String() && txin.PrevOut.Index == uint32(txoutIdx) {
-					inputTxHash, err := HashFromString(txResp.Hash)
+					inputTxHash, err := utils.HashFromString(txResp.Hash)
 					if err != nil {
 						return SpentTxOutRow{}, err
 					}
@@ -204,4 +184,24 @@ func (api *BlockchainInfoAPI) getTxHashByTxIndex(txIndex uint32) string {
 	}
 
 	return txIndexResp.Hash
+}
+
+func getJSON(url string, x interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	bs, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(bs, x)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

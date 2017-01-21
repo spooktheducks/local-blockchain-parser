@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
 	"github.com/btcsuite/btcd/wire"
 	"github.com/btcsuite/btcutil"
 )
@@ -140,4 +141,21 @@ func ReverseBytes(bs []byte) []byte {
 
 func DATFilename(idx uint16) string {
 	return fmt.Sprintf("blk%05d.dat", idx)
+}
+
+func HashFromBytes(bs []byte) (chainhash.Hash, error) {
+	hash := &chainhash.Hash{}
+	err := hash.SetBytes(bs)
+	if err != nil {
+		return chainhash.Hash{}, err
+	}
+	return *hash, nil
+}
+
+func HashFromString(s string) (chainhash.Hash, error) {
+	h, err := chainhash.NewHashFromStr(s)
+	if err != nil {
+		return chainhash.Hash{}, err
+	}
+	return *h, nil
 }

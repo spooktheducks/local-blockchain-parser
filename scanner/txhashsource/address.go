@@ -8,10 +8,11 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
-func NewAddressTxHashSource(db *blockdb.BlockDB, addr string) TxHashSource {
+func NewAddressTxHashSource(db *BlockDB, addr string) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
@@ -84,7 +85,7 @@ func getTxs(addr string, offset int, ch chan chainhash.Hash) (int, error) {
 	}
 
 	for _, tx := range addrResp.Txs {
-		txHash, err := blockdb.HashFromString(tx.Hash)
+		txHash, err := utils.HashFromString(tx.Hash)
 		if err != nil {
 			fmt.Println("err decoding tx hash:", err)
 			return 0, err

@@ -5,8 +5,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 )
 
 type (
@@ -17,7 +16,7 @@ type (
 		Detectors           []IDetector
 		DetectorOutputs     []IDetectorOutput
 
-		DB *blockdb.BlockDB
+		DB *BlockDB
 	}
 
 	ITxHashSource interface {

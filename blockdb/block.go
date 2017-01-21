@@ -1,4 +1,4 @@
-package types
+package blockdb
 
 import (
 	// "github.com/btcsuite/btcd/chaincfg"

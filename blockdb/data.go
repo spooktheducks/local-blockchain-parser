@@ -78,7 +78,7 @@ func (k SpentTxOutKey) ToBytes() ([]byte, error) {
 	return data.Bytes(), nil
 }
 
-func NewSpentTxOutRowFromBytes(bs []byte) (SpentTxOutRow, error) {
+func newSpentTxOutRowFromBytes(bs []byte) (SpentTxOutRow, error) {
 	row := SpentTxOutRow{}
 	err := binary.Read(bytes.NewReader(bs), binary.LittleEndian, &row)
 	if err != nil {

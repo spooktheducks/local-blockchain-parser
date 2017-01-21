@@ -1,4 +1,4 @@
-package types
+package blockdb
 
 import (
 	"fmt"
@@ -14,9 +14,7 @@ import (
 type Tx struct {
 	*btcutil.Tx
 
-	DB interface {
-		GetTx(chainhash.Hash) (*Tx, error)
-	}
+	db *BlockDB
 
 	DATFileIdx          uint16
 	BlockTimestamp      int64
@@ -28,6 +26,10 @@ type Tx struct {
 
 func (tx *Tx) DATFilename() string {
 	return fmt.Sprintf("blk%05d.dat", tx.DATFileIdx)
+}
+
+func (tx *Tx) GetOPReturnDataFromTxOut(txoutIdx int) ([]byte, error) {
+	return utils.GetOPReturnBytes(tx.MsgTx().TxOut[txoutIdx].PkScript)
 }
 
 func (tx *Tx) GetNonOPDataFromTxOut(txoutIdx int) ([]byte, error) {
@@ -125,7 +127,7 @@ func (tx *Tx) Fee() (BTC, error) {
 	}
 	var inValues int64
 	for _, txin := range tx.MsgTx().TxIn {
-		prevTx, err := tx.DB.GetTx(txin.PreviousOutPoint.Hash)
+		prevTx, err := tx.db.GetTx(txin.PreviousOutPoint.Hash)
 		if err != nil {
 			return 0, err
 		}
@@ -133,4 +135,13 @@ func (tx *Tx) Fee() (BTC, error) {
 	}
 
 	return Satoshis(inValues - outValues).ToBTC(), nil
+}
+
+func (tx *Tx) GetSpendingTx(txoutIdx int) (*Tx, error) {
+	spentTxOut, err := tx.db.GetSpentTxOut(SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
+	if err != nil {
+		return nil, err
+	}
+
+	return tx.db.GetTx(spentTxOut.InputTxHash)
 }

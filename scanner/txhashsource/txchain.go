@@ -3,10 +3,10 @@ package txhashsource
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 )
 
-func NewChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
@@ -27,7 +27,7 @@ func NewChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
 	return TxHashSource(ch)
 }
 
-func NewForwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewForwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
@@ -45,7 +45,7 @@ func NewForwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource
 			// }
 			ch <- currentTxHash
 
-			key := blockdb.SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(tx.FindMaxValueTxOut())}
+			key := SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(tx.FindMaxValueTxOut())}
 			spentTxOut, err := db.GetSpentTxOut(key)
 			if err != nil {
 				// @@TODO
@@ -60,7 +60,7 @@ func NewForwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource
 	return TxHashSource(ch)
 }
 
-func NewBackwardChain(db *blockdb.BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewBackwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)

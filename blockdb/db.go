@@ -10,7 +10,6 @@ import (
 	"github.com/btcsuite/btcutil"
 
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type (
@@ -427,7 +426,6 @@ func (db *BlockDB) GetTx(txHash chainhash.Hash) (*Tx, error) {
 		return nil, err
 	}
 
-	fmt.Printf("%+v\n", txRow)
 	blockRow, err := db.GetBlockIndexRow(txRow.BlockHash)
 	if err != nil {
 		fmt.Printf("block index row %v not found\n", txRow.BlockHash.String())
@@ -446,7 +444,7 @@ func (db *BlockDB) GetTx(txHash chainhash.Hash) (*Tx, error) {
 
 	txWrapped := &Tx{
 		Tx:                  tx,
-		DB:                  db,
+		db:                  db,
 		BlockHash:           txRow.BlockHash,
 		IndexInBlock:        txRow.IndexInBlock,
 		DATFileIdx:          blockRow.DATFileIdx,
@@ -716,7 +714,7 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 			return errNotFoundDB
 		}
 
-		row, err = NewSpentTxOutRowFromBytes(valBytes)
+		row, err = newSpentTxOutRowFromBytes(valBytes)
 		if err != nil {
 			return err
 		}

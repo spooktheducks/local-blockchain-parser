@@ -7,11 +7,13 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 )
 
 type CSVTxAnalysis struct {
 	OutDir string
+	DB     *BlockDB
 
 	columns []string
 	data    map[chainhash.Hash]map[string]bool
@@ -58,6 +60,7 @@ func (o *CSVTxAnalysis) appendColumnIfUnique(c string) {
 func (o *CSVTxAnalysis) Close() error {
 	// add 'tx-hash' as the first column
 	o.columns = append([]string{"tx hash"}, o.columns...)
+	// o.columns = append(o.columns, "fee")
 
 	// open the csv file
 	csvFile, err := os.Create(filepath.Join(o.OutDir, "tx-analysis.csv"))

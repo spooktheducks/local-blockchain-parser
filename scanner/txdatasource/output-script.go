@@ -3,9 +3,8 @@ package txdatasource
 import (
 	"fmt"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type OutputScript struct{}
@@ -27,13 +26,13 @@ func (ds *OutputScript) Name() string {
 
 func (ds *OutputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 	results := []scanner.ITxDataSourceResult{}
-	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		bs, err := utils.GetNonOPBytes(txout.PkScript)
+	for i := range tx.MsgTx().TxOut {
+		bs, err := tx.GetNonOPDataFromTxOut(i)
 		if err != nil {
 			continue
 		}
 
-		results = append(results, OutputScriptResult{rawData: bs, index: txoutIdx})
+		results = append(results, OutputScriptResult{rawData: bs, index: i})
 	}
 
 	return results, nil

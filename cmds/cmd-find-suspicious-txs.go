@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 func FindSuspiciousTxs(startBlock, endBlock uint64, datFileDir, outDir string) error {

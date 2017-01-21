@@ -3,7 +3,7 @@ package dbcmds
 import (
 	"fmt"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 )
 
 type BuildBlockDBCommand struct {
@@ -29,7 +29,7 @@ func NewBuildBlockDBCommand(startBlock, endBlock uint64, datFileDir, dbFile, ind
 }
 
 func (cmd *BuildBlockDBCommand) RunCommand() error {
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}

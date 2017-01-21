@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	// "github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type InputScript struct{}

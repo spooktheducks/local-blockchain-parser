@@ -4,13 +4,15 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detector"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/detectoroutput"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasource"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txdatasourceoutput"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner/txhashsource"
+
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 type TxChainCommand struct {
@@ -18,7 +20,7 @@ type TxChainCommand struct {
 	datFileDir string
 	txHash     string
 	outDir     string
-	db         *blockdb.BlockDB
+	db         *BlockDB
 }
 
 func NewTxChainCommand(datFileDir, dbFile, outDir, txHash string) *TxChainCommand {
@@ -36,7 +38,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}
@@ -44,7 +46,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 
 	cmd.db = db
 
-	startHash, err := blockdb.HashFromString(cmd.txHash)
+	startHash, err := utils.HashFromString(cmd.txHash)
 	if err != nil {
 		return err
 	}

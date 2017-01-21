@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type DumpTxDataCommand struct {

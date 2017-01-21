@@ -7,7 +7,8 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
 )
 
@@ -17,13 +18,13 @@ func TestChainTxHashSource(T *testing.T) {
 		panic("must specify DAT_FILE_DIR enviroment variable (example: DAT_FILE_DIR=/path/to/dat/files go test)")
 	}
 
-	db, err := blockdb.NewBlockDB("../blockchain.db", datFileDir)
+	db, err := NewBlockDB("../blockchain.db", datFileDir)
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
 
-	startHash, err := blockdb.HashFromString("691dd277dc0e90a462a3d652a1171686de49cf19067cd33c7df0392833fb986a")
+	startHash, err := utils.HashFromString("691dd277dc0e90a462a3d652a1171686de49cf19067cd33c7df0392833fb986a")
 	if err != nil {
 		panic(err)
 	}

@@ -3,7 +3,8 @@ package dbcmds
 import (
 	"fmt"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
 )
 
 type BlockInfoCommand struct {
@@ -21,13 +22,13 @@ func NewBlockInfoCommand(datFileDir, dbFile, blockHash string) *BlockInfoCommand
 }
 
 func (cmd *BlockInfoCommand) RunCommand() error {
-	db, err := blockdb.NewBlockDB(cmd.dbFile, cmd.datFileDir)
+	db, err := NewBlockDB(cmd.dbFile, cmd.datFileDir)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	blockHash, err := blockdb.HashFromString(cmd.blockHash)
+	blockHash, err := utils.HashFromString(cmd.blockHash)
 	if err != nil {
 		return err
 	}

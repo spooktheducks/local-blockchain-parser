@@ -1,8 +1,8 @@
 package txdatasource
 
 import (
+	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
 	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/types"
 )
 
 type OutputScriptsSatoshi struct{}
