@@ -3,7 +3,7 @@ package txhashsource
 import (
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 )
 
 func NewChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {

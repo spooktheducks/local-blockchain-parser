@@ -5,7 +5,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	"github.com/spooktheducks/local-blockchain-parser/scanner"
 )
 
 type Console struct {

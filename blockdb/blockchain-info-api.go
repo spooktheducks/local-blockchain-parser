@@ -8,7 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
 )
 
 type BlockchainInfoAPI struct{}

@@ -3,7 +3,7 @@ package dbcmds
 import (
 	"fmt"
 
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
+	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 )
 
 type BuildBlockDBCommand struct {

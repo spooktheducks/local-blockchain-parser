@@ -1,8 +1,8 @@
 package detector
 
 import (
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils/aeskeyfind"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/scanner"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/utils/aeskeyfind"
+	"github.com/spooktheducks/local-blockchain-parser/scanner"
 )
 
 type AESKeys struct{}

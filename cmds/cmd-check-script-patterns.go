@@ -8,7 +8,7 @@ import (
 
 	"github.com/btcsuite/btcd/txscript"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
 )
 
 func CheckScriptPatterns(startBlock, endBlock uint64, inDir, outDir string) error {

@@ -9,8 +9,8 @@ import (
 
 	"github.com/urfave/cli"
 
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/dbcmds"
+	"github.com/spooktheducks/local-blockchain-parser/cmds"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/dbcmds"
 )
 
 func main() {

@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	. "github.com/WikiLeaksFreedomForce/local-blockchain-parser/blockdb"
-	"github.com/WikiLeaksFreedomForce/local-blockchain-parser/cmds/utils"
+	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
 )
 
 type TxInfoCommand struct {
