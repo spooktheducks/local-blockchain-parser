@@ -31,14 +31,15 @@ func main() {
 					Name: "tx-info",
 					Flags: []cli.Flag{
 						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 					},
 					Action: func(c *cli.Context) error {
-						dbFile := c.String("dbFile")
+						dbFile, outDir := c.String("dbFile"), c.String("outDir")
 						txHash := c.Args().Get(0)
 						if txHash == "" {
 							return fmt.Errorf("must specify tx hash")
 						}
-						cmd := dbcmds.NewTxInfoCommand(cfg.DatFileDir, dbFile, txHash)
+						cmd := dbcmds.NewTxInfoCommand(cfg.DatFileDir, dbFile, outDir, txHash)
 						return cmd.RunCommand()
 					},
 				},
@@ -164,6 +165,27 @@ func main() {
 						return cmd.RunCommand()
 					},
 				},
+			},
+		},
+
+		{
+			Name: "binary-grep",
+			Flags: []cli.Flag{
+				// cli.Uint64Flag{Name: "startBlock, s", Usage: "The block number to start from"},
+				// cli.Uint64Flag{Name: "endBlock, e", Usage: "The block number to end on"},
+				cli.IntSliceFlag{Name: "block, b"},
+				cli.StringFlag{Name: "outDir, out", Usage: "The directory where carved files will be saved", Value: "output"},
+				cli.Uint64Flag{Name: "carveLen, len", Usage: "The amount of data to carve after each match"},
+				cli.StringFlag{Name: "carveExt, ext", Usage: "The extension of the files that are carved", Value: "dat"},
+			},
+			Action: func(c *cli.Context) error {
+				/*startBlock, endBlock,*/ blocks, outDir, carveLen, carveExt := c.IntSlice("block"), c.String("outDir") /*c.Uint64("startBlock"), c.Uint64("endBlock"),*/, c.Uint64("carveLen"), c.String("carveExt")
+				hexPattern := c.Args().Get(0)
+				if hexPattern == "" {
+					return fmt.Errorf("must specify hex pattern to search for")
+				}
+				cmd := cmds.NewBinaryGrepCommand(blocks, carveLen, carveExt, outDir, cfg.DatFileDir, hexPattern)
+				return cmd.RunCommand()
 			},
 		},
 

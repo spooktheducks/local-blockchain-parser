@@ -11,6 +11,7 @@ import (
 type (
 	Scanner struct {
 		TxHashSource        ITxHashSource
+		TxHashOutputs       []ITxHashOutput
 		TxDataSources       []ITxDataSource
 		TxDataSourceOutputs []ITxDataSourceOutput
 		Detectors           []IDetector
@@ -21,6 +22,11 @@ type (
 
 	ITxHashSource interface {
 		NextHash() (chainhash.Hash, bool)
+	}
+
+	ITxHashOutput interface {
+		OutputTx(*Tx) error
+		Close() error
 	}
 
 	ITxDataSource interface {
@@ -56,6 +62,13 @@ type (
 )
 
 func (s *Scanner) Close() error {
+	for _, out := range s.TxHashOutputs {
+		err := out.Close()
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, out := range s.DetectorOutputs {
 		err := out.Close()
 		if err != nil {
@@ -84,6 +97,13 @@ func (s *Scanner) Run() error {
 		if err != nil {
 			fmt.Printf("cannot get tx %v\n", txHash)
 			return err
+		}
+
+		for _, out := range s.TxHashOutputs {
+			err := out.OutputTx(tx)
+			if err != nil {
+				return err
+			}
 		}
 
 		for _, txDataSource := range s.TxDataSources {

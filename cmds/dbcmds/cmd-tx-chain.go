@@ -9,6 +9,7 @@ import (
 	"github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasource"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasourceoutput"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/txhashoutput"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txhashsource"
 
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
@@ -54,6 +55,10 @@ func (cmd *TxChainCommand) RunCommand() error {
 	s := &scanner.Scanner{
 		DB:           db,
 		TxHashSource: txhashsource.NewChain(db, startHash),
+		TxHashOutputs: []scanner.ITxHashOutput{
+			&txhashoutput.OpReturn{OutDir: cmd.outDir, Filename: "transactions-opreturn.txt"},
+			&txhashoutput.NonOp{OutDir: cmd.outDir, Filename: "transactions-nonop.txt"},
+		},
 		TxDataSources: []scanner.ITxDataSource{
 			&txdatasource.InputScript{},
 			&txdatasource.InputScriptsConcat{},

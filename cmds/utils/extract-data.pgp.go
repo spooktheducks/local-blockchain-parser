@@ -26,18 +26,15 @@ func (r PGPPacketResult) DescriptionStrings() []string {
 func FindPGPPackets(data []byte) PGPPacketResult {
 	packets := []packet.Packet{}
 
-	reader := packet.NewReader(bytes.NewReader(data))
-	for {
-		packet, err := reader.Next()
-		if err != nil {
-			break
+	for i := range data {
+		reader := packet.NewReader(bytes.NewReader(data[i:]))
+		for {
+			packet, err := reader.Next()
+			if err != nil {
+				break
+			}
+			packets = append(packets, packet)
 		}
-		packets = append(packets, packet)
-		// if isSatoshi {
-		// fmt.Printf("  - GPG packet (satoshi-encoded): %+v\n", packet)
-		// } else {
-		// fmt.Printf("  - GPG packet: %+v\n", packet)
-		// }
 	}
 
 	return PGPPacketResult{Packets: packets}

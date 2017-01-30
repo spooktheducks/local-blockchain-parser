@@ -32,9 +32,32 @@ func (tx *Tx) GetOPReturnDataFromTxOut(txoutIdx int) ([]byte, error) {
 	return utils.GetOPReturnBytes(tx.MsgTx().TxOut[txoutIdx].PkScript)
 }
 
+func (tx *Tx) ConcatOPReturnDataFromTxOuts() ([]byte, error) {
+	allBytes := []byte{}
+
+	for _, txout := range tx.MsgTx().TxOut {
+		bs, err := utils.GetOPReturnBytes(txout.PkScript)
+		if err != nil {
+			continue
+		}
+
+		allBytes = append(allBytes, bs...)
+	}
+
+	return allBytes, nil
+}
+
 func (tx *Tx) GetNonOPDataFromTxOut(txoutIdx int) ([]byte, error) {
 	return utils.GetNonOPBytes(tx.MsgTx().TxOut[txoutIdx].PkScript)
 }
+
+// func (tx *Tx) IsSpent(txoutIdx int) (bool, error) {
+// 	spentTxOut, err := tx.db.GetSpentTxOut(SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(txoutIdx)})
+//     if err != nil {
+//         return false, err
+//     }
+//     spentTxOut.
+// }
 
 func (tx *Tx) ConcatNonOPDataFromTxOuts() ([]byte, error) {
 	allBytes := []byte{}
@@ -121,6 +144,7 @@ func (tx *Tx) HasSuspiciousOutputValues() bool {
 }
 
 func (tx *Tx) Fee() (BTC, error) {
+	return 0, nil
 	var outValues int64
 	for _, txout := range tx.MsgTx().TxOut {
 		outValues += txout.Value

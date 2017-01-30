@@ -3,25 +3,56 @@ package dbcmds
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	// "sort"
 	"strings"
 	"time"
 
+	// "github.com/btcsuite/btcd/chaincfg/chainhash"
+
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/detector"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/txdatasource"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/txdatasourceoutput"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/txhashsource"
 )
 
 type TxInfoCommand struct {
 	dbFile     string
 	datFileDir string
+	outDir     string
 	txHash     string
 }
 
-func NewTxInfoCommand(datFileDir, dbFile, txHash string) *TxInfoCommand {
+func NewTxInfoCommand(datFileDir, dbFile, outDir, txHash string) *TxInfoCommand {
 	return &TxInfoCommand{
 		dbFile:     dbFile,
 		datFileDir: datFileDir,
+		outDir:     filepath.Join(outDir, "tx-info", txHash),
 		txHash:     txHash,
 	}
+}
+
+type sortableTxOut struct {
+	Index int
+	Value uint64
+}
+
+type sortableTxOuts []sortableTxOut
+
+func (s sortableTxOuts) Len() int {
+	return len(s)
+}
+
+func (s sortableTxOuts) Less(i, j int) bool {
+	return s[i].Value < s[j].Value
+}
+
+func (s sortableTxOuts) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
 
 func (cmd *TxInfoCommand) RunCommand() error {
@@ -36,6 +67,61 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
+	// {
+	// 	// txList := []string{
+	// 	// 	"5970ae129d1141663bd5e441a1555c16fb1c0586dd05f40c1db3d3e81218ee41",
+	// 	// 	"6e5c13edf8bb594ad850882173c9b5e906187269595c0154db36668d337b42e1",
+	// 	// }
+
+	// 	allData := []byte{}
+	// 	hashStr := "5970ae129d1141663bd5e441a1555c16fb1c0586dd05f40c1db3d3e81218ee41"
+	// 	h, _ := utils.HashFromString(hashStr)
+	// 	tx, err := db.GetTx(h)
+	// 	if err != nil {
+	// 		panic(err)
+	// 	}
+
+	// 	i := 0
+	// 	for { //_, hashStr := range txList {
+	// 		if i > 20 {
+	// 			break
+	// 		}
+	// 		sortedTxOuts := sortableTxOuts{}
+	// 		for i, txout := range tx.MsgTx().TxOut {
+	// 			sortedTxOuts = append(sortedTxOuts, sortableTxOut{Index: i, Value: uint64(txout.Value)})
+	// 		}
+	// 		sort.Sort(sortedTxOuts)
+
+	// 		for _, txout := range sortedTxOuts {
+	// 			spendingTx, err := tx.GetSpendingTx(txout.Index)
+	// 			if err == nil || spendingTx != nil {
+	// 				continue
+	// 			}
+
+	// 			data, err := tx.GetNonOPDataFromTxOut(txout.Index)
+	// 			if err != nil {
+	// 				panic(err)
+	// 			}
+	// 			allData = append(allData, data...)
+	// 		}
+
+	// 		// find next tx
+	// 		for i := range tx.MsgTx().TxOut {
+	// 			spendingTx, err := tx.GetSpendingTx(i)
+	// 			if err != nil || spendingTx == nil {
+	// 				continue
+	// 			}
+	// 			tx = spendingTx
+	// 			break
+	// 		}
+	// 		fmt.Println("next:", tx.Hash().String())
+	// 		i++
+	// 	}
+
+	// 	fmt.Println(string(allData))
+	// 	panic("done")
+	// }
+
 	tx, err := db.GetTx(txHash)
 	if err != nil {
 		return err
@@ -45,11 +131,11 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("  - Block %v (%v) (%v)\n", tx.BlockHash, tx.DATFilename(), time.Unix(tx.BlockTimestamp, 0))
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
-	fee, err := tx.Fee()
-	if err != nil {
-		return err
-	}
-	fmt.Printf("  - Fee: %v BTC\n", fee)
+	// fee, err := tx.Fee()
+	// if err != nil {
+	// 	return err
+	// }
+	// fmt.Printf("  - Fee: %v BTC\n", fee)
 
 	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	// if err != nil {
@@ -78,6 +164,47 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	// 	return err
 	// }
 
+	err = os.MkdirAll(cmd.outDir, 0777)
+	if err != nil {
+		return err
+	}
+
+	// s := &scanner.Scanner{
+	// 	DB:           db,
+	// 	TxHashSource: txhashsource.NewListTxHashSource([]chainhash.Hash{*tx.Hash()}),
+	// 	TxDataSources: []scanner.ITxDataSource{
+	// 		&txdatasource.InputScript{},
+	// 		// &txdatasource.InputScriptsConcat{},
+	// 		&txdatasource.OutputScript{},
+	// 		// &txdatasource.OutputScriptsConcat{},
+	// 		&txdatasource.OutputScriptsSatoshi{},
+	// 		&txdatasource.OutputScriptOpReturn{},
+	// 	},
+	// 	TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
+	// 		&txdatasourceoutput.RawData{OutDir: cmd.outDir},
+	// 		&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
+	// 	},
+	// 	Detectors: []scanner.IDetector{
+	// 		// &detector.PGPPackets{},
+	// 		// &detector.AESKeys{},
+	// 		&detector.MagicBytes{},
+	// 		// &detector.Plaintext{},
+	// 	},
+	// 	DetectorOutputs: []scanner.IDetectorOutput{
+	// 		&detectoroutput.Console{Prefix: "  - "},
+	// 		&detectoroutput.RawData{OutDir: cmd.outDir},
+	// 		&detectoroutput.CSV{OutDir: cmd.outDir},
+	// 		&detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
+	// 	},
+	// }
+
+	// err = s.Run()
+	// if err != nil {
+	// 	return err
+	// }
+
+	// return s.Close()
+
 	err = cmd.findFileHeaders(tx)
 	if err != nil {
 		return err
@@ -88,10 +215,10 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	err = cmd.findGPGData(tx)
-	if err != nil {
-		return err
-	}
+	// err = cmd.findGPGData(tx)
+	// if err != nil {
+	// 	return err
+	// }
 
 	err = os.MkdirAll("output/tx-info/"+tx.Hash().String(), 0777)
 	if err != nil {
@@ -212,6 +339,7 @@ func (cmd *TxInfoCommand) findSatoshiEncodedData(tx *Tx) error {
 func (cmd *TxInfoCommand) findFileHeaders(tx *Tx) error {
 	// check TxIn scripts for known file headers/footers
 	for txinIdx, txin := range tx.MsgTx().TxIn {
+		fmt.Println(string(txin.SignatureScript))
 		matches := utils.SearchDataForMagicFileBytes(txin.SignatureScript)
 		for _, m := range matches {
 			fmt.Printf("  - TxIn %v magic match: %v\n", txinIdx, m.Description())
