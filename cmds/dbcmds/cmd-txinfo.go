@@ -1,6 +1,7 @@
 package dbcmds
 
 import (
+	"encoding/hex"
 	"fmt"
 	"os"
 	"path/filepath"

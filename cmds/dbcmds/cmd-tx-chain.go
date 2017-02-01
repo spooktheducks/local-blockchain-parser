@@ -58,6 +58,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 		TxHashOutputs: []scanner.ITxHashOutput{
 			&txhashoutput.OpReturn{OutDir: cmd.outDir, Filename: "transactions-opreturn.txt"},
 			&txhashoutput.NonOp{OutDir: cmd.outDir, Filename: "transactions-nonop.txt"},
+			&txhashoutput.InputScript{OutDir: cmd.outDir, Filename: "transactions-inputscripts.txt"},
 		},
 		TxDataSources: []scanner.ITxDataSource{
 			&txdatasource.InputScript{},
@@ -72,7 +73,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 			&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
 		},
 		Detectors: []scanner.IDetector{
-			&detector.PGPPackets{},
+			// &detector.PGPPackets{},
 			&detector.AESKeys{},
 			&detector.MagicBytes{},
 			// &detector.Plaintext{},

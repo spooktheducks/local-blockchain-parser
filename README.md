@@ -20,12 +20,6 @@ Either rename the executable to `local-blockchain-parser` or use the existing ex
 
 ### Build/install from source
 
-If you already have Go and `git` installed, just run the following command in the terminal:
-
-```sh
-curl https://raw.githubusercontent.com/WikiLeaksFreedomForce/local-blockchain-parser/master/setup.sh  | bash
-```
-
 If you do not have Go installed, here are some instructions:
 
 - Install Go (see <https://golang.org/doc/install> for more information)
@@ -100,7 +94,7 @@ This lets us crawl forward through chains of transactions.
 You can do this with only blk00052.dat.  You have to build the block + transaction indices as explained in the examples above.
 
 ```sh
-local-blockchain-parser querydb tx-chain --datFileDir ./data 2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8
+local-blockchain-parser querydb tx-chain 2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8
 ```
 
 *Note: `2c9e766020d9e93bea3a1d149313ab224d3c375ad9341594331fa9c48bce13b8` is a random transaction from the Cablegate release.  You can specify any transaction in the list, and the crawler will crawl forwards and backwards to find the entire chain.*

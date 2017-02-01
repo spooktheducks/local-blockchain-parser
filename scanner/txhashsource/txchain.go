@@ -1,6 +1,8 @@
 package txhashsource
 
 import (
+	"fmt"
+
 	"github.com/btcsuite/btcd/chaincfg/chainhash"
 
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
@@ -40,7 +42,8 @@ func NewForwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 				panic(err)
 			}
 
-			// if !utils.TxHasSuspiciousOutputValues(tx) {
+			// if !tx.HasSuspiciousOutputValues() {
+			// 	fmt.Println("no suspicious output values, stopping")
 			// 	break
 			// }
 			ch <- currentTxHash
@@ -48,6 +51,7 @@ func NewForwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 			key := SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(tx.FindMaxValueTxOut())}
 			spentTxOut, err := db.GetSpentTxOut(key)
 			if err != nil {
+				fmt.Println("err", err)
 				// @@TODO
 				// panic(err)
 				break
@@ -81,7 +85,7 @@ func NewBackwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 				panic(err)
 			}
 
-			// if utils.TxHasSuspiciousOutputValues(tx) {
+			// if tx.HasSuspiciousOutputValues() {
 			foundHashesReverse = append(foundHashesReverse, currentTxHash)
 			if len(tx.MsgTx().TxIn) == 1 {
 				currentTxHash = tx.MsgTx().TxIn[0].PreviousOutPoint.Hash

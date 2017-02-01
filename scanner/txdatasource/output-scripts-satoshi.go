@@ -16,7 +16,7 @@ var _ scanner.ITxDataSource = &OutputScriptsSatoshi{}
 var _ scanner.ITxDataSourceResult = &OutputScriptsSatoshiResult{}
 
 func (ds *OutputScriptsSatoshi) Name() string {
-	return "all-txs-outputs-satoshi-concatenated"
+	return "outputs-satoshi"
 }
 
 func (ds *OutputScriptsSatoshi) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
@@ -29,7 +29,7 @@ func (ds *OutputScriptsSatoshi) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, 
 }
 
 func (r OutputScriptsSatoshiResult) SourceName() string {
-	return "all-txs-outputs-satoshi-concatenated"
+	return "outputs-satoshi"
 }
 
 func (r OutputScriptsSatoshiResult) RawData() []byte {

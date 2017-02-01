@@ -723,7 +723,8 @@ func (db *BlockDB) GetSpentTxOut(key SpentTxOutKey) (SpentTxOutRow, error) {
 	})
 
 	if err == errNotFoundDB {
-		tx, err := db.GetTx(key.TxHash)
+		var tx *Tx
+		tx, err = db.GetTx(key.TxHash)
 		if err != nil {
 			fmt.Printf("error: %v\n", err)
 			return row, err
