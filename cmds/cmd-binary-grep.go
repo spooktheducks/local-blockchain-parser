@@ -114,7 +114,6 @@ func (cmd *BinaryGrepCommand) parseBlock(blockFileNum int, pattern []byte, chRes
 	for _, bl := range blocks {
 		blockHash := bl.Hash().String()
 
-		// numTxs := len(bl.Transactions())
 		for _, btctx := range bl.Transactions() {
 			tx := Tx{Tx: btctx}
 
@@ -125,6 +124,9 @@ func (cmd *BinaryGrepCommand) parseBlock(blockFileNum int, pattern []byte, chRes
 				chErr <- err
 				return
 			}
+
+			// it is unlikely that a given pattern will be found more than once in the scripts,
+			// given how short they are, so we don't loop the search
 
 			offset := bytes.Index(inData, pattern)
 			if offset > -1 {
