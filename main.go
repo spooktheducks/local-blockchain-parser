@@ -63,14 +63,16 @@ func main() {
 					Flags: []cli.Flag{
 						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
 						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+						cli.StringFlag{Name: "direction, d", Usage: "'forward', 'backward', or 'both'", Value: "both"},
+						cli.UintFlag{Name: "limit, l", Usage: "Limits the number of transactions crawled", Value: 0},
 					},
 					Action: func(c *cli.Context) error {
-						dbFile, outDir := c.String("dbFile"), c.String("outDir")
+						dbFile, outDir, direction, limit := c.String("dbFile"), c.String("outDir"), c.String("direction"), c.Uint("limit")
 						txHash := c.Args().Get(0)
 						if txHash == "" {
 							return fmt.Errorf("must specify tx hash")
 						}
-						cmd := dbcmds.NewTxChainCommand(cfg.DatFileDir, dbFile, outDir, txHash)
+						cmd := dbcmds.NewTxChainCommand(cfg.DatFileDir, dbFile, outDir, direction, limit, txHash)
 						return cmd.RunCommand()
 					},
 				},

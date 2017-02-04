@@ -8,13 +8,13 @@ import (
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 )
 
-func NewChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewChain(db *BlockDB, startHash chainhash.Hash, limit uint) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
 
-		chBackwards := NewBackwardChain(db, startHash)
-		chForwards := NewForwardChain(db, startHash)
+		chBackwards := NewBackwardChain(db, startHash, limit)
+		chForwards := NewForwardChain(db, startHash, limit)
 
 		for hash := range chBackwards {
 			ch <- hash
@@ -29,13 +29,18 @@ func NewChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 	return TxHashSource(ch)
 }
 
-func NewForwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewForwardChain(db *BlockDB, startHash chainhash.Hash, limit uint) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
 
 		currentTxHash := startHash
+		var i uint
 		for {
+			if limit > 0 && i >= limit {
+				break
+			}
+
 			tx, err := db.GetTx(currentTxHash)
 			if err != nil {
 				// @@TODO
@@ -58,13 +63,14 @@ func NewForwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 			}
 
 			currentTxHash = spentTxOut.InputTxHash
+			i++
 		}
 	}()
 
 	return TxHashSource(ch)
 }
 
-func NewBackwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
+func NewBackwardChain(db *BlockDB, startHash chainhash.Hash, limit uint) TxHashSource {
 	ch := make(chan chainhash.Hash)
 	go func() {
 		defer close(ch)
@@ -73,7 +79,12 @@ func NewBackwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 
 		foundHashesReverse := []chainhash.Hash{}
 		currentTxHash := startHash
+		var i uint
 		for {
+			if limit > 0 && i >= limit {
+				break
+			}
+
 			if currentTxHash == emptyHash {
 				// this is the coinbase, so we can't follow further backwards
 				break
@@ -95,6 +106,8 @@ func NewBackwardChain(db *BlockDB, startHash chainhash.Hash) TxHashSource {
 			// } else {
 			// 	break
 			// }
+
+			i++
 		}
 
 		numHashes := len(foundHashesReverse)

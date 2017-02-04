@@ -19,16 +19,27 @@ import (
 type TxChainCommand struct {
 	dbFile     string
 	datFileDir string
-	txHash     string
 	outDir     string
-	db         *BlockDB
+	direction  string
+	txHash     string
+	limit      uint
+
+	db *BlockDB
 }
 
-func NewTxChainCommand(datFileDir, dbFile, outDir, txHash string) *TxChainCommand {
+func NewTxChainCommand(datFileDir, dbFile, outDir, direction string, limit uint, txHash string) *TxChainCommand {
+	if direction != "forward" &&
+		direction != "backward" &&
+		direction != "both" {
+		panic("--direction (-d) must be 'forward', 'backward', or 'both'")
+	}
+
 	return &TxChainCommand{
 		dbFile:     dbFile,
 		datFileDir: datFileDir,
 		txHash:     txHash,
+		direction:  direction,
+		limit:      limit,
 		outDir:     filepath.Join(outDir, "tx-chain", txHash),
 	}
 }
@@ -52,9 +63,18 @@ func (cmd *TxChainCommand) RunCommand() error {
 		return err
 	}
 
+	var txHashSource scanner.ITxHashSource
+	if cmd.direction == "forward" {
+		txHashSource = txhashsource.NewForwardChain(db, startHash, cmd.limit)
+	} else if cmd.direction == "backward" {
+		txHashSource = txhashsource.NewBackwardChain(db, startHash, cmd.limit)
+	} else {
+		txHashSource = txhashsource.NewChain(db, startHash, cmd.limit)
+	}
+
 	s := &scanner.Scanner{
 		DB:           db,
-		TxHashSource: txhashsource.NewChain(db, startHash),
+		TxHashSource: txHashSource,
 		TxHashOutputs: []scanner.ITxHashOutput{
 			&txhashoutput.OpReturn{OutDir: cmd.outDir, Filename: "transactions-opreturn.txt"},
 			&txhashoutput.NonOp{OutDir: cmd.outDir, Filename: "transactions-nonop.txt"},
