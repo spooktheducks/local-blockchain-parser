@@ -226,21 +226,11 @@ func (db *BlockDB) putTxIndexRows(keys []chainhash.Hash, rows []TxIndexRow) erro
 	return err
 }
 
-func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
-	if blockHash.String() == "0000000000000000017275d59d5ab479d0df454acad34227abf3d2911e253914" {
-		// panic("DAT BLOCK")
-		return BlockIndexRow{}, fmt.Errorf("dat block :(")
-	}
+var emptyHash = chainhash.Hash{}
 
-	hasBytes := false
-	for i := range blockHash {
-		if blockHash[i] != 0x00 {
-			hasBytes = true
-			break
-		}
-	}
-	if !hasBytes {
-		panic("NO BYTES")
+func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, error) {
+	if blockHash == emptyHash {
+		return BlockIndexRow{}, fmt.Errorf("tried to get coinbase blockhash (empty hash)")
 	}
 
 	row, err := db.getBlockIndexRowFromDB(blockHash)
