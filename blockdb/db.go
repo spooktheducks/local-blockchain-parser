@@ -20,10 +20,11 @@ type (
 )
 
 const (
-	BucketBlockIndex       = "BlockIndex"
-	BucketTransactionIndex = "TransactionIndex"
-	BucketTxOutDupes       = "TxOutDupes"
-	BucketSpentTxOuts      = "SpentTxOuts"
+	BucketBlockIndex               = "BlockIndex"
+	BucketTransactionIndex         = "TransactionIndex"
+	BucketTxOutDupes               = "TxOutDupes"
+	BucketSpentTxOuts              = "SpentTxOuts"
+	BucketSpentTxOutsIndexedBlocks = "SpentTxOutsIndexedBlocks"
 )
 
 func NewBlockDB(dbFilename string, datFileDir string) (*BlockDB, error) {
@@ -572,7 +573,7 @@ func (db *BlockDB) ScanTxOutDuplicateData() error {
 	return err
 }
 
-func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
+func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64, force bool) error {
 	blockDATFiles := []string{}
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		blockDATFiles = append(blockDATFiles, fmt.Sprintf("blk%05d.dat", i))
@@ -582,6 +583,16 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 	vals := []SpentTxOutRow{}
 
 	for _, datFilename := range blockDATFiles {
+		if !force {
+			indexed, err := db.CheckIfSpentTxOutsIndexed(datFilename)
+			if err != nil {
+				return err
+			} else if indexed {
+				fmt.Printf("skipping %v, already indexed\n", datFilename)
+				continue
+			}
+		}
+
 		datFilepath := filepath.Join(db.datFileDir, datFilename)
 
 		fmt.Println("parsing block file", datFilepath)
@@ -612,6 +623,11 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 				}
 			}
 		}
+
+		err = db.SetSpentTxOutsIndexed(datFilename)
+		if err != nil {
+			return err
+		}
 	}
 
 	if len(keys) > 0 {
@@ -622,6 +638,40 @@ func (db *BlockDB) IndexDATFileSpentTxOuts(startBlock, endBlock uint64) error {
 	}
 
 	return nil
+}
+
+func (db *BlockDB) CheckIfSpentTxOutsIndexed(filename string) (bool, error) {
+	var indexed bool
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketSpentTxOutsIndexedBlocks))
+		if err != nil {
+			return err
+		}
+
+		val := bucket.Get([]byte(filepath.Base(filename)))
+		if val != nil {
+			indexed = true
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+	return indexed, nil
+}
+
+func (db *BlockDB) SetSpentTxOutsIndexed(filename string) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketSpentTxOutsIndexedBlocks))
+		if err != nil {
+			return err
+		}
+
+		err = bucket.Put([]byte(filepath.Base(filename)), []byte{1})
+		return err
+	})
+	return err
 }
 
 func (db *BlockDB) PutSpentTxOut(key SpentTxOutKey, val SpentTxOutRow) error {

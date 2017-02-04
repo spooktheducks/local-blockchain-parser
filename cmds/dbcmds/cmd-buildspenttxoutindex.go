@@ -9,14 +9,16 @@ type BuildSpentTxOutIndexCommand struct {
 	datFileDir string
 	startBlock uint64
 	endBlock   uint64
+	force      bool
 }
 
-func NewBuildSpentTxOutIndexCommand(startBlock, endBlock uint64, datFileDir, dbFile string) *BuildSpentTxOutIndexCommand {
+func NewBuildSpentTxOutIndexCommand(startBlock, endBlock uint64, datFileDir, dbFile string, force bool) *BuildSpentTxOutIndexCommand {
 	return &BuildSpentTxOutIndexCommand{
 		dbFile:     dbFile,
 		datFileDir: datFileDir,
 		startBlock: startBlock,
 		endBlock:   endBlock,
+		force:      force,
 	}
 }
 
@@ -27,7 +29,7 @@ func (cmd *BuildSpentTxOutIndexCommand) RunCommand() error {
 	}
 	defer db.Close()
 
-	err = db.IndexDATFileSpentTxOuts(cmd.startBlock, cmd.endBlock)
+	err = db.IndexDATFileSpentTxOuts(cmd.startBlock, cmd.endBlock, cmd.force)
 	if err != nil {
 		return err
 	}
