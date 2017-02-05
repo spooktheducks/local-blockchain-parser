@@ -76,6 +76,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 		DB:           db,
 		TxHashSource: txHashSource,
 		TxHashOutputs: []scanner.ITxHashOutput{
+			&txhashoutput.HashOnly{OutDir: cmd.outDir, Filename: "transactions.txt"},
 			&txhashoutput.OpReturn{OutDir: cmd.outDir, Filename: "transactions-opreturn.txt"},
 			&txhashoutput.NonOp{OutDir: cmd.outDir, Filename: "transactions-nonop.txt"},
 			&txhashoutput.InputScript{OutDir: cmd.outDir, Filename: "transactions-inputscripts.txt"},
