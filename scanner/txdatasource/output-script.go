@@ -7,6 +7,7 @@ import (
 	"github.com/btcsuite/btcd/wire"
 
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
+	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
 	"github.com/spooktheducks/local-blockchain-parser/scanner"
 )
 
@@ -55,11 +56,11 @@ func (ds *OutputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 	}
 
 	results := []scanner.ITxDataSourceResult{}
-	for i := range txouts {
+	for i, txout := range txouts {
 		if ds.SkipMaxValueTxOut && i == skipTxoutIdx {
 			continue
 		}
-		bs, err := tx.GetNonOPDataFromTxOut(i)
+		bs, err := utils.GetNonOPBytes(txout.PkScript)
 		if err != nil {
 			continue
 		}
