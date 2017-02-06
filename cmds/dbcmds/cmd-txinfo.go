@@ -2,6 +2,7 @@ package dbcmds
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	// "sort"
@@ -225,38 +226,50 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	f, err := os.Create("output/tx-info/" + tx.Hash().String() + "/txout-data.dat")
-	if err != nil {
-		return err
+	// write individual txouts
+	for txoutIdx, txout := range tx.MsgTx().TxOut {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("txout-%v.dat", txoutIdx)), txout.PkScript, 0666)
+		if err != nil {
+			return err
+		}
 	}
-	defer f.Close()
 
+	// write concatenated txouts
 	data, err := tx.ConcatNonOPDataFromTxOuts()
 	if err != nil {
 		return err
 	}
-	f.Write(data)
-
-	sf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/satoshi-txout-data.dat")
-	if err != nil {
-		return err
+	if err == nil {
+		err = ioutil.WriteFile(filepath.Join(cmd.outDir, "txout-data.dat"), data, 0666)
+		if err != nil {
+			return err
+		}
 	}
-	defer sf.Close()
 
+	// write satoshi-encoded txouts
 	sd, err := utils.GetSatoshiEncodedData(data)
 	if err == nil {
-		sf.Write(sd)
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, "satoshi-txout-data.dat"), sd, 0666)
+		if err != nil {
+			return err
+		}
 	}
 
-	inf, err := os.Create("output/tx-info/" + tx.Hash().String() + "/txin-data.dat")
-	if err != nil {
-		return err
+	// write individual txins
+	for txinIdx, txin := range tx.MsgTx().TxIn {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("txin-%v.dat", txinIdx)), txin.SignatureScript, 0666)
+		if err != nil {
+			return err
+		}
 	}
-	defer sf.Close()
 
+	// write concatenated txins
 	data, err = tx.ConcatTxInScripts()
 	if err == nil {
-		inf.Write(data)
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, "txin-data.dat"), data, 0666)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
