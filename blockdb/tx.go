@@ -47,8 +47,16 @@ func (tx *Tx) ConcatOPReturnDataFromTxOuts() ([]byte, error) {
 	return allBytes, nil
 }
 
+func (tx *Tx) GetNonOPDataFromTxIn(txinIdx int) ([]byte, error) {
+	return utils.GetNonOPBytesFromInputScript(tx.MsgTx().TxIn[txinIdx].SignatureScript)
+}
+
+func (tx *Tx) GetPushdataFromTxIn(txinIdx int) ([]byte, error) {
+	return utils.GetPushdataBytesFromInputScript(tx.MsgTx().TxIn[txinIdx].SignatureScript)
+}
+
 func (tx *Tx) GetNonOPDataFromTxOut(txoutIdx int) ([]byte, error) {
-	return utils.GetNonOPBytes(tx.MsgTx().TxOut[txoutIdx].PkScript)
+	return utils.GetNonOPBytesFromOutputScript(tx.MsgTx().TxOut[txoutIdx].PkScript)
 }
 
 // func (tx *Tx) IsSpent(txoutIdx int) (bool, error) {
@@ -63,7 +71,37 @@ func (tx *Tx) ConcatNonOPDataFromTxOuts() ([]byte, error) {
 	allBytes := []byte{}
 
 	for _, txout := range tx.MsgTx().TxOut {
-		bs, err := utils.GetNonOPBytes(txout.PkScript)
+		bs, err := utils.GetNonOPBytesFromOutputScript(txout.PkScript)
+		if err != nil {
+			continue
+		}
+
+		allBytes = append(allBytes, bs...)
+	}
+
+	return allBytes, nil
+}
+
+func (tx *Tx) ConcatNonOPDataFromTxIns() ([]byte, error) {
+	allBytes := []byte{}
+
+	for _, txin := range tx.MsgTx().TxIn {
+		bs, err := utils.GetNonOPBytesFromInputScript(txin.SignatureScript)
+		if err != nil {
+			continue
+		}
+
+		allBytes = append(allBytes, bs...)
+	}
+
+	return allBytes, nil
+}
+
+func (tx *Tx) ConcatPushdataFromTxIns() ([]byte, error) {
+	allBytes := []byte{}
+
+	for _, txin := range tx.MsgTx().TxIn {
+		bs, err := utils.GetPushdataBytesFromInputScript(txin.SignatureScript)
 		if err != nil {
 			continue
 		}

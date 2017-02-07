@@ -124,7 +124,7 @@ func opReturnsParseBlock(inDir string, outDir string, blockFileNum int, chCSVDat
 			txOuts := tx.MsgTx().TxOut
 
 			for _, txout := range txOuts {
-				data, err := utils.GetNonOPBytes(txout.PkScript)
+				data, err := utils.GetNonOPBytesFromOutputScript(txout.PkScript)
 				if err != nil {
 					if err.Error() == "encoding/hex: odd length hex string" {
 						continue

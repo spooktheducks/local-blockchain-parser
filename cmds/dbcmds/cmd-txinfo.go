@@ -261,12 +261,52 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		if err != nil {
 			return err
 		}
+
+		// write txin non-OP data
+		nonOPData, err := utils.GetNonOPBytesFromInputScript(txin.SignatureScript)
+		if err != nil {
+			return err
+		}
+
+		err = ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("txin-nonop-%v.dat", txinIdx)), nonOPData, 0666)
+		if err != nil {
+			return err
+		}
+
+		// write txin OP_PUSHDATA data
+		pushdata, err := utils.GetPushdataBytesFromInputScript(txin.SignatureScript)
+		if err != nil {
+			return err
+		}
+
+		err = ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("txin-pushdata-%v.dat", txinIdx)), pushdata, 0666)
+		if err != nil {
+			return err
+		}
 	}
 
 	// write concatenated txins
 	data, err = tx.ConcatTxInScripts()
 	if err == nil {
 		err := ioutil.WriteFile(filepath.Join(cmd.outDir, "txin-data.dat"), data, 0666)
+		if err != nil {
+			return err
+		}
+	}
+
+	// write concatenated txin non-OP data
+	data, err = tx.ConcatNonOPDataFromTxIns()
+	if err == nil {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, "txin-nonop-concat.dat"), data, 0666)
+		if err != nil {
+			return err
+		}
+	}
+
+	// write concatenated txin OP_PUSHDATA data
+	data, err = tx.ConcatPushdataFromTxIns()
+	if err == nil {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, "txin-pushdata-concat.dat"), data, 0666)
 		if err != nil {
 			return err
 		}

@@ -60,7 +60,7 @@ func (ds *OutputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 		if ds.SkipMaxValueTxOut && i == skipTxoutIdx {
 			continue
 		}
-		bs, err := utils.GetNonOPBytes(txout.PkScript)
+		bs, err := utils.GetNonOPBytesFromOutputScript(txout.PkScript)
 		if err != nil {
 			continue
 		}

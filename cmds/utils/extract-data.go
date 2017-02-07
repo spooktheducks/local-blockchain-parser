@@ -53,7 +53,7 @@ func GetOPReturnBytes(scriptData []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func GetNonOPBytes(scriptData []byte) ([]byte, error) {
+func GetNonOPBytesFromOutputScript(scriptData []byte) ([]byte, error) {
 	scriptStr, err := txscript.DisasmString(scriptData)
 	if err != nil {
 		return nil, err

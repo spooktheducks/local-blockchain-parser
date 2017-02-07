@@ -83,14 +83,16 @@ func (cmd *TxChainCommand) RunCommand() error {
 		},
 		TxDataSources: []scanner.ITxDataSource{
 			&txdatasource.InputScript{},
+			&txdatasource.InputScriptNonOP{},
+			&txdatasource.InputScriptPushdata{},
 			&txdatasource.InputScriptsConcat{},
 			&txdatasource.OutputScript{},
-			&txdatasource.OutputScriptsConcat{},
 			&txdatasource.OutputScript{OrderByValue: true},
 			&txdatasource.OutputScript{SkipMaxValueTxOut: true},
 			&txdatasource.OutputScript{SkipMaxValueTxOut: true, OrderByValue: true},
 			&txdatasource.OutputScriptsSatoshi{},
 			&txdatasource.OutputScriptOpReturn{},
+			&txdatasource.OutputScriptsConcat{},
 		},
 		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
 			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
