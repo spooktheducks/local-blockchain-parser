@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/urfave/cli"
 
@@ -314,6 +315,9 @@ func getConfig() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("could not parse config: %v", err)
 	}
+
+	// replace ~ with home dir
+	cfg.DatFileDir = strings.Replace(cfg.DatFileDir, "~", os.Getenv("HOME"), 1)
 
 	return cfg, nil
 }
