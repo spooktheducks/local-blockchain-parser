@@ -31,7 +31,7 @@ func main() {
 				{
 					Name: "tx-info",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 					},
 					Action: func(c *cli.Context) error {
@@ -47,7 +47,7 @@ func main() {
 				{
 					Name: "block-info",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 					},
 					Action: func(c *cli.Context) error {
 						dbFile := c.String("dbFile")
@@ -62,7 +62,7 @@ func main() {
 				{
 					Name: "tx-chain",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 						cli.StringFlag{Name: "direction, d", Usage: "'forward', 'backward', or 'both'", Value: "both"},
 						cli.UintFlag{Name: "limit, l", Usage: "Limits the number of transactions crawled", Value: 0},
@@ -80,7 +80,7 @@ func main() {
 				{
 					Name: "scan-address",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 						cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 					},
 					Action: func(c *cli.Context) error {
@@ -96,7 +96,7 @@ func main() {
 				{
 					Name: "duplicates",
 					Flags: []cli.Flag{
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 					},
 					Action: func(c *cli.Context) error {
 						dbFile := c.String("dbFile")
@@ -115,7 +115,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 					},
 					Action: func(c *cli.Context) error {
 						startBlock, endBlock, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile")
@@ -131,7 +131,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 					},
 					Action: func(c *cli.Context) error {
 						startBlock, endBlock, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile")
@@ -147,7 +147,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 					},
 					Action: func(c *cli.Context) error {
 						startBlock, endBlock, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile")
@@ -160,7 +160,7 @@ func main() {
 					Flags: []cli.Flag{
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
-						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 						cli.BoolFlag{Name: "force, f", Usage: "Force the indexer to re-index blocks that have already been indexed"},
 					},
 					Action: func(c *cli.Context) error {
@@ -196,7 +196,7 @@ func main() {
 		{
 			Name: "graph",
 			Flags: []cli.Flag{
-				cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: "blockchain.db"},
+				cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
 				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 			},
 			Action: func(c *cli.Context) error {
@@ -298,45 +298,56 @@ func main() {
 
 type Config struct {
 	DatFileDir string `json:"datFileDir"`
+	DBFile     string `json:"dbFile"`
 }
 
 var configFilename = filepath.Join(os.Getenv("HOME"), ".wlff-blockchain")
 
 func getConfig() (Config, error) {
+	cfg := Config{}
+
 	bs, err := ioutil.ReadFile(configFilename)
 	if err, is := err.(*os.PathError); is {
-		return createConfig()
+		// no-op
 	} else if err != nil {
-		return Config{}, err
+		return cfg, err
+	} else {
+		err := json.Unmarshal(bs, &cfg)
+		if err != nil {
+			return Config{}, fmt.Errorf("Could not parse config (%v).  Try deleting the file \"~/.wlff-blockchain\" and running this program again to regenerate it.", err)
+		}
 	}
 
-	cfg := Config{}
-	err = json.Unmarshal(bs, &cfg)
+	if cfg.DatFileDir == "" {
+		cfg.DatFileDir, err = promptInput("Enter the path to the directory containing your blockchain .dat files: ")
+		if err != nil {
+			return cfg, err
+		}
+	}
+
+	if cfg.DBFile == "" {
+		cfg.DBFile, err = promptInput("Enter the path to your blockchain.db file (or where you want it to go): ")
+		if err != nil {
+			return cfg, err
+		}
+	}
+
+	err = saveConfig(cfg)
 	if err != nil {
-		return Config{}, fmt.Errorf("could not parse config: %v", err)
+		return cfg, err
 	}
 
 	// replace ~ with home dir
 	cfg.DatFileDir = strings.Replace(cfg.DatFileDir, "~", os.Getenv("HOME"), 1)
+	cfg.DBFile = strings.Replace(cfg.DBFile, "~", os.Getenv("HOME"), 1)
 
 	return cfg, nil
 }
 
-func createConfig() (Config, error) {
-	cfg := Config{}
-
-	for cfg.DatFileDir == "" {
-		fmt.Printf("Enter the path to the directory containing your blockchain .dat files: ")
-		datFileDir, err := scanStr()
-		if err != nil {
-			return Config{}, err
-		}
-		cfg.DatFileDir = datFileDir
-	}
-
+func saveConfig(cfg Config) error {
 	f, err := os.Create(configFilename)
 	if err != nil {
-		return Config{}, err
+		return err
 	}
 	defer f.Close()
 
@@ -345,10 +356,23 @@ func createConfig() (Config, error) {
 
 	err = j.Encode(cfg)
 	if err != nil {
-		return Config{}, err
+		return err
 	}
 
-	return cfg, nil
+	return nil
+}
+
+func promptInput(prompt string) (string, error) {
+	var input string
+	var err error
+	for input == "" {
+		fmt.Printf(prompt)
+		input, err = scanStr()
+		if err != nil {
+			return "", err
+		}
+	}
+	return input, nil
 }
 
 func scanStr() (string, error) {
