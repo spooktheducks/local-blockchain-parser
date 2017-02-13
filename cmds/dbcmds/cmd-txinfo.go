@@ -132,11 +132,11 @@ func (cmd *TxInfoCommand) RunCommand() error {
 	fmt.Printf("  - Block %v (%v) (%v)\n", tx.BlockHash, tx.DATFilename(), time.Unix(tx.BlockTimestamp, 0))
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
 
-	// fee, err := tx.Fee()
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Printf("  - Fee: %v BTC\n", fee)
+	fee, err := tx.Fee()
+	if err != nil {
+		return err
+	}
+	fmt.Printf("  - Fee: %v BTC\n", fee)
 
 	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	// if err != nil {

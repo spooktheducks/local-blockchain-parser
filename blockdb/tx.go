@@ -182,7 +182,6 @@ func (tx *Tx) HasSuspiciousOutputValues() bool {
 }
 
 func (tx *Tx) Fee() (BTC, error) {
-	return 0, nil
 	var outValues int64
 	for _, txout := range tx.MsgTx().TxOut {
 		outValues += txout.Value
