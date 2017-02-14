@@ -12,9 +12,10 @@ type BuildBlockDBCommand struct {
 	startBlock uint64
 	endBlock   uint64
 	indexWhat  string
+	force      bool
 }
 
-func NewBuildBlockDBCommand(startBlock, endBlock uint64, datFileDir, dbFile, indexWhat string) (*BuildBlockDBCommand, error) {
+func NewBuildBlockDBCommand(startBlock, endBlock uint64, datFileDir, dbFile, indexWhat string, force bool) (*BuildBlockDBCommand, error) {
 	if indexWhat != "blocks" && indexWhat != "transactions" {
 		return nil, fmt.Errorf("must specify either 'blocks' or 'transactions'")
 	}
@@ -25,6 +26,7 @@ func NewBuildBlockDBCommand(startBlock, endBlock uint64, datFileDir, dbFile, ind
 		startBlock: startBlock,
 		endBlock:   endBlock,
 		indexWhat:  indexWhat,
+		force:      force,
 	}, nil
 }
 
@@ -37,7 +39,7 @@ func (cmd *BuildBlockDBCommand) RunCommand() error {
 
 	switch cmd.indexWhat {
 	case "transactions":
-		err = db.IndexDATFileTransactions(cmd.startBlock, cmd.endBlock)
+		err = db.IndexDATFileTransactions(cmd.startBlock, cmd.endBlock, cmd.force)
 		if err != nil {
 			return err
 		}
