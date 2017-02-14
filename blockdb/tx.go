@@ -211,3 +211,7 @@ func (tx *Tx) GetSpendingTx(txoutIdx int) (*Tx, error) {
 
 	return tx.db.GetTx(spentTxOut.InputTxHash)
 }
+
+func (tx *Tx) SetDB(db *BlockDB) {
+	tx.db = db
+}

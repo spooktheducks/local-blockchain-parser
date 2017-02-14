@@ -208,6 +208,21 @@ func main() {
 		},
 
 		{
+			Name: "dump-tx-fees",
+			Flags: []cli.Flag{
+				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
+				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
+				cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
+				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
+			},
+			Action: func(c *cli.Context) error {
+				startBlock, endBlock, dbFile, outDir := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile"), c.String("outDir")
+				cmd := cmds.NewDumpTxFeesCommand(startBlock, endBlock, cfg.DatFileDir, dbFile, outDir)
+				return cmd.RunCommand()
+			},
+		},
+
+		{
 			Name: "dump-tx-data",
 			Flags: []cli.Flag{
 				cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
