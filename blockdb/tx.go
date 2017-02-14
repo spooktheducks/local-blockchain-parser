@@ -188,6 +188,11 @@ func (tx *Tx) Fee() (BTC, error) {
 	}
 	var inValues int64
 	for _, txin := range tx.MsgTx().TxIn {
+		// @@TODO: handle coinbase correctly
+		if txin.PreviousOutPoint.Hash == emptyHash {
+			continue
+		}
+
 		prevTx, err := tx.db.GetTx(txin.PreviousOutPoint.Hash)
 		if err != nil {
 			return 0, err
