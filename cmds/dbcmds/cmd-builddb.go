@@ -46,7 +46,7 @@ func (cmd *BuildBlockDBCommand) RunCommand() error {
 		return nil
 
 	case "blocks":
-		err = db.IndexDATFileBlocks(cmd.startBlock, cmd.endBlock)
+		err = db.IndexDATFileBlocks(cmd.startBlock, cmd.endBlock, cmd.force)
 		if err != nil {
 			return err
 		}

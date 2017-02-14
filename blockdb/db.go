@@ -21,6 +21,7 @@ type (
 
 const (
 	BucketBlockIndex                = "BlockIndex"
+	BucketBlocksIndexedBlocks       = "BlocksIndexedBlocks"
 	BucketTransactionIndex          = "TransactionIndex"
 	BucketTransactionsIndexedBlocks = "TransactionsIndexedBlocks"
 	BucketTxOutDupes                = "TxOutDupes"
@@ -54,12 +55,22 @@ func (db *BlockDB) LoadBlockFromDAT(datIdx uint16, blockIdx uint32) (*btcutil.Bl
 	return utils.LoadBlockFromDAT(db.DATFilename(datIdx), blockIdx)
 }
 
-func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
+func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64, force bool) error {
 	for i := int(startBlock); i < int(endBlock)+1; i++ {
 		datFilename := fmt.Sprintf("blk%05d.dat", i)
 		datFilepath := filepath.Join(db.datFileDir, datFilename)
 
 		fmt.Println("parsing block file", datFilepath)
+
+		if !force {
+			isIndexed, err := db.CheckIfBlocksIndexed(datFilename)
+			if err != nil {
+				return err
+			} else if isIndexed {
+				fmt.Println(datFilename, "already indexed, skipping")
+				continue
+			}
+		}
 
 		blocks, err := utils.LoadBlocksFromDAT(datFilepath)
 		if err != nil {
@@ -70,9 +81,48 @@ func (db *BlockDB) IndexDATFileBlocks(startBlock, endBlock uint64) error {
 		if err != nil {
 			return err
 		}
+
+		err = db.SetBlocksIndexed(datFilename)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func (db *BlockDB) CheckIfBlocksIndexed(filename string) (bool, error) {
+	var indexed bool
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketBlocksIndexedBlocks))
+		if err != nil {
+			return err
+		}
+
+		val := bucket.Get([]byte(filepath.Base(filename)))
+		if val != nil {
+			indexed = true
+		}
+		return nil
+	})
+
+	if err != nil {
+		return false, err
+	}
+	return indexed, nil
+}
+
+func (db *BlockDB) SetBlocksIndexed(filename string) error {
+	err := db.store.Update(func(boltTx *bolt.Tx) error {
+		bucket, err := boltTx.CreateBucketIfNotExists([]byte(BucketBlocksIndexedBlocks))
+		if err != nil {
+			return err
+		}
+
+		err = bucket.Put([]byte(filepath.Base(filename)), []byte{1})
+		return err
+	})
+	return err
 }
 
 func (db *BlockDB) IndexDATFileTransactions(startBlock, endBlock uint64, force bool) error {

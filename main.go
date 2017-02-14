@@ -116,10 +116,11 @@ func main() {
 						cli.Uint64Flag{Name: "startBlock", Usage: "The block number to start from"},
 						cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
 						cli.StringFlag{Name: "dbFile", Usage: "The database file", Value: cfg.DBFile},
+						cli.BoolFlag{Name: "force, f", Usage: "Force the indexer to re-index blocks that have already been indexed"},
 					},
 					Action: func(c *cli.Context) error {
-						startBlock, endBlock, dbFile := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile")
-						cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, cfg.DatFileDir, dbFile, "blocks", true)
+						startBlock, endBlock, dbFile, force := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("dbFile"), c.Bool("force")
+						cmd, err := dbcmds.NewBuildBlockDBCommand(startBlock, endBlock, cfg.DatFileDir, dbFile, "blocks", force)
 						if err != nil {
 							return err
 						}
