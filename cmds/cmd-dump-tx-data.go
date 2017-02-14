@@ -3,6 +3,7 @@ package cmds
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -86,8 +87,8 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 		return
 	}
 
-	// numBlocks := len(blocks)
-	for _, bl := range blocks {
+	numBlocks := len(blocks)
+	for blIdx, bl := range blocks {
 		blockHash := bl.Hash().String()
 
 		// numTxs := len(bl.Transactions())
@@ -96,7 +97,21 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 
 			txHash := tx.Hash().String()
 
-			for txoutIdx := range tx.MsgTx().TxOut {
+			for txinIdx, txin := range tx.MsgTx().TxIn {
+				err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin-%d.dat", txHash, txinIdx)), txin.SignatureScript, 0666)
+				if err != nil {
+					chErr <- err
+					return
+				}
+			}
+
+			for txoutIdx, txout := range tx.MsgTx().TxOut {
+				err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout-%d.dat", txHash, txoutIdx)), txout.PkScript, 0666)
+				if err != nil {
+					chErr <- err
+					return
+				}
+
 				addrs, err := tx.GetTxOutAddress(txoutIdx)
 				if err != nil {
 					chErr <- err
@@ -119,6 +134,8 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 				outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, recipientAddr, txHash, txoutIdx, txoutDataHex), true)
 			}
 		}
+
+		fmt.Printf("finished block %s (%d/%d)\n", blockHash, blIdx, numBlocks)
 	}
 
 	if err != nil {
