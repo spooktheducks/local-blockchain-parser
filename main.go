@@ -230,7 +230,7 @@ func main() {
 				cli.Uint64Flag{Name: "endBlock", Usage: "The block number to end on"},
 				cli.StringFlag{Name: "outDir", Usage: "The output directory", Value: "output"},
 				cli.BoolFlag{Name: "coalesce, c", Usage: "Only output one txin.dat and one txout.dat per transaction"},
-				cli.StringFlag{Name: "groupBy, g", Usage: "How to group the output files (if specified, must be either 'alpha' or 'dat')"},
+				cli.StringFlag{Name: "groupBy, g", Usage: "How to group the output files (if specified, must be either 'alpha', 'dat', or 'blockDate')"},
 			},
 			Action: func(c *cli.Context) error {
 				startBlock, endBlock, outDir, coalesce, groupBy := c.Uint64("startBlock"), c.Uint64("endBlock"), c.String("outDir"), c.Bool("coalesce"), c.String("groupBy")

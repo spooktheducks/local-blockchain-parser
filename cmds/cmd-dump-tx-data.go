@@ -19,8 +19,8 @@ type DumpTxDataCommand struct {
 }
 
 func NewDumpTxDataCommand(startBlock, endBlock uint64, datFileDir, outDir string, coalesce bool, groupBy string) (*DumpTxDataCommand, error) {
-	if groupBy != "" && groupBy != "alpha" && groupBy != "dat" {
-		return nil, fmt.Errorf("if --groupBy is specified, it must be either 'alpha' or 'dat'")
+	if groupBy != "" && groupBy != "alpha" && groupBy != "dat" && groupBy != "blockDate" {
+		return nil, fmt.Errorf("if --groupBy is specified, it must be either 'alpha', 'dat', or 'blockDate'")
 	}
 	return &DumpTxDataCommand{
 		startBlock: startBlock,
@@ -100,15 +100,16 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 
 		for _, btctx := range bl.Transactions() {
 			tx := Tx{Tx: btctx}
+			block := Block{Block: bl}
 
 			if cmd.coalesce {
-				err := cmd.writeCoalesced(tx)
+				err := cmd.writeCoalesced(tx, block)
 				if err != nil {
 					chErr <- err
 					return
 				}
 			} else {
-				err := cmd.writeNonCoalesced(tx, csvFile)
+				err := cmd.writeNonCoalesced(tx, block, csvFile)
 				if err != nil {
 					chErr <- err
 					return
@@ -125,7 +126,7 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 	}
 }
 
-func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
+func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx, block Block) error {
 	txHash := tx.Hash().String()
 
 	allTxinData := []byte{}
@@ -135,7 +136,7 @@ func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
 		allTxinData = append(allTxinData, txin.SignatureScript...)
 	}
 
-	outDir := cmd.dataOutputDir(tx)
+	outDir := cmd.dataOutputDir(tx, block)
 	err := os.MkdirAll(outDir, 0777)
 	if err != nil {
 		return err
@@ -158,10 +159,10 @@ func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
 	return nil
 }
 
-func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, csvFile *utils.ConditionalFile) error {
+func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, block Block, csvFile *utils.ConditionalFile) error {
 	txHash := tx.Hash().String()
 
-	outDir := cmd.dataOutputDir(tx)
+	outDir := cmd.dataOutputDir(tx, block)
 	err := os.MkdirAll(outDir, 0777)
 	if err != nil {
 		return err
@@ -203,7 +204,7 @@ func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, csvFile *utils.Conditiona
 	return nil
 }
 
-func (cmd *DumpTxDataCommand) dataOutputDir(tx Tx) string {
+func (cmd *DumpTxDataCommand) dataOutputDir(tx Tx, block Block) string {
 	switch cmd.groupBy {
 	case "":
 		return cmd.outDir
@@ -211,7 +212,10 @@ func (cmd *DumpTxDataCommand) dataOutputDir(tx Tx) string {
 		return filepath.Join(cmd.outDir, tx.Hash().String()[0:2])
 	case "dat":
 		return filepath.Join(cmd.outDir, tx.DATFilename())
+	case "blockDate":
+		timestamp := block.MsgBlock().Header.Timestamp.Format("2 Jan 2006")
+		return filepath.Join(cmd.outDir, timestamp)
 	default:
-		panic("--groupBy must be 'alpha' or 'dat' (or empty)")
+		panic("--groupBy must be 'alpha', 'dat', 'blockDate' (or empty)")
 	}
 }
