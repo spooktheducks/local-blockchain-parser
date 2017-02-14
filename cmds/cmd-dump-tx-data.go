@@ -15,16 +15,21 @@ type DumpTxDataCommand struct {
 	startBlock, endBlock uint64
 	datFileDir, outDir   string
 	coalesce             bool
+	groupBy              string
 }
 
-func NewDumpTxDataCommand(startBlock, endBlock uint64, datFileDir, outDir string, coalesce bool) *DumpTxDataCommand {
+func NewDumpTxDataCommand(startBlock, endBlock uint64, datFileDir, outDir string, coalesce bool, groupBy string) (*DumpTxDataCommand, error) {
+	if groupBy != "" && groupBy != "alpha" && groupBy != "dat" {
+		return nil, fmt.Errorf("if --groupBy is specified, it must be either 'alpha' or 'dat'")
+	}
 	return &DumpTxDataCommand{
 		startBlock: startBlock,
 		endBlock:   endBlock,
 		datFileDir: datFileDir,
 		outDir:     filepath.Join(".", outDir, "dump-tx-data"),
 		coalesce:   coalesce,
-	}
+		groupBy:    groupBy,
+	}, nil
 }
 
 func (cmd *DumpTxDataCommand) RunCommand() error {
@@ -130,7 +135,13 @@ func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
 		allTxinData = append(allTxinData, txin.SignatureScript...)
 	}
 
-	err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin.dat", txHash)), allTxinData, 0666)
+	outDir := cmd.dataOutputDir(tx)
+	err := os.MkdirAll(outDir, 0777)
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(filepath.Join(outDir, fmt.Sprintf("%s-txin.dat", txHash)), allTxinData, 0666)
 	if err != nil {
 		return err
 	}
@@ -139,7 +150,7 @@ func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
 		allTxoutData = append(allTxoutData, txout.PkScript...)
 	}
 
-	err = ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout.dat", txHash)), allTxoutData, 0666)
+	err = ioutil.WriteFile(filepath.Join(outDir, fmt.Sprintf("%s-txout.dat", txHash)), allTxoutData, 0666)
 	if err != nil {
 		return err
 	}
@@ -150,15 +161,21 @@ func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
 func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, csvFile *utils.ConditionalFile) error {
 	txHash := tx.Hash().String()
 
+	outDir := cmd.dataOutputDir(tx)
+	err := os.MkdirAll(outDir, 0777)
+	if err != nil {
+		return err
+	}
+
 	for txinIdx, txin := range tx.MsgTx().TxIn {
-		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin-%d.dat", txHash, txinIdx)), txin.SignatureScript, 0666)
+		err := ioutil.WriteFile(filepath.Join(outDir, fmt.Sprintf("%s-txin-%d.dat", txHash, txinIdx)), txin.SignatureScript, 0666)
 		if err != nil {
 			return err
 		}
 	}
 
 	for txoutIdx, txout := range tx.MsgTx().TxOut {
-		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout-%d.dat", txHash, txoutIdx)), txout.PkScript, 0666)
+		err := ioutil.WriteFile(filepath.Join(outDir, fmt.Sprintf("%s-txout-%d.dat", txHash, txoutIdx)), txout.PkScript, 0666)
 		if err != nil {
 			return err
 		}
@@ -184,4 +201,17 @@ func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, csvFile *utils.Conditiona
 	}
 
 	return nil
+}
+
+func (cmd *DumpTxDataCommand) dataOutputDir(tx Tx) string {
+	switch cmd.groupBy {
+	case "":
+		return cmd.outDir
+	case "alpha":
+		return filepath.Join(cmd.outDir, tx.Hash().String()[0:2])
+	case "dat":
+		return filepath.Join(cmd.outDir, tx.DATFilename())
+	default:
+		panic("--groupBy must be 'alpha' or 'dat' (or empty)")
+	}
 }
