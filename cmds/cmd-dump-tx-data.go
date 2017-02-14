@@ -14,14 +14,16 @@ import (
 type DumpTxDataCommand struct {
 	startBlock, endBlock uint64
 	datFileDir, outDir   string
+	coalesce             bool
 }
 
-func NewDumpTxDataCommand(startBlock, endBlock uint64, datFileDir, outDir string) *DumpTxDataCommand {
+func NewDumpTxDataCommand(startBlock, endBlock uint64, datFileDir, outDir string, coalesce bool) *DumpTxDataCommand {
 	return &DumpTxDataCommand{
 		startBlock: startBlock,
 		endBlock:   endBlock,
 		datFileDir: datFileDir,
 		outDir:     filepath.Join(".", outDir, "dump-tx-data"),
+		coalesce:   coalesce,
 	}
 }
 
@@ -77,11 +79,11 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 		return
 	}
 
-	outFile := utils.NewConditionalFile(filepath.Join(cmd.outDir, fmt.Sprintf("blk%05d-tx-data.csv", blockFileNum)))
-	defer outFile.Close()
+	csvFile := utils.NewConditionalFile(filepath.Join(cmd.outDir, fmt.Sprintf("blk%05d-tx-data.csv", blockFileNum)))
+	defer csvFile.Close()
 
 	// write CSV header
-	_, err = outFile.WriteString("block,recipient address,tx,output index,data\n", false)
+	_, err = csvFile.WriteString("block,recipient address,tx,output index,data\n", false)
 	if err != nil {
 		chErr <- err
 		return
@@ -91,47 +93,21 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 	for blIdx, bl := range blocks {
 		blockHash := bl.Hash().String()
 
-		// numTxs := len(bl.Transactions())
 		for _, btctx := range bl.Transactions() {
 			tx := Tx{Tx: btctx}
 
-			txHash := tx.Hash().String()
-
-			for txinIdx, txin := range tx.MsgTx().TxIn {
-				err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin-%d.dat", txHash, txinIdx)), txin.SignatureScript, 0666)
+			if cmd.coalesce {
+				err := cmd.writeCoalesced(tx)
 				if err != nil {
 					chErr <- err
 					return
 				}
-			}
-
-			for txoutIdx, txout := range tx.MsgTx().TxOut {
-				err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout-%d.dat", txHash, txoutIdx)), txout.PkScript, 0666)
+			} else {
+				err := cmd.writeNonCoalesced(tx, csvFile)
 				if err != nil {
 					chErr <- err
 					return
 				}
-
-				addrs, err := tx.GetTxOutAddress(txoutIdx)
-				if err != nil {
-					chErr <- err
-					return
-				}
-
-				recipientAddr := ""
-				if len(addrs) > 0 {
-					recipientAddr = addrs[0].EncodeAddress()
-				}
-
-				txoutData, err := tx.GetNonOPDataFromTxOut(txoutIdx)
-				if err != nil {
-					chErr <- err
-					return
-				}
-
-				txoutDataHex := hex.EncodeToString(txoutData)
-
-				outFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", blockHash, recipientAddr, txHash, txoutIdx, txoutDataHex), true)
 			}
 		}
 
@@ -142,4 +118,70 @@ func (cmd *DumpTxDataCommand) parseBlock(blockFileNum int, chErr chan error, chD
 		chErr <- err
 		return
 	}
+}
+
+func (cmd *DumpTxDataCommand) writeCoalesced(tx Tx) error {
+	txHash := tx.Hash().String()
+
+	allTxinData := []byte{}
+	allTxoutData := []byte{}
+
+	for _, txin := range tx.MsgTx().TxIn {
+		allTxinData = append(allTxinData, txin.SignatureScript...)
+	}
+
+	err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin.dat", txHash)), allTxinData, 0666)
+	if err != nil {
+		return err
+	}
+
+	for _, txout := range tx.MsgTx().TxOut {
+		allTxoutData = append(allTxoutData, txout.PkScript...)
+	}
+
+	err = ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout.dat", txHash)), allTxoutData, 0666)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (cmd *DumpTxDataCommand) writeNonCoalesced(tx Tx, csvFile *utils.ConditionalFile) error {
+	txHash := tx.Hash().String()
+
+	for txinIdx, txin := range tx.MsgTx().TxIn {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txin-%d.dat", txHash, txinIdx)), txin.SignatureScript, 0666)
+		if err != nil {
+			return err
+		}
+	}
+
+	for txoutIdx, txout := range tx.MsgTx().TxOut {
+		err := ioutil.WriteFile(filepath.Join(cmd.outDir, fmt.Sprintf("%s-txout-%d.dat", txHash, txoutIdx)), txout.PkScript, 0666)
+		if err != nil {
+			return err
+		}
+
+		addrs, err := tx.GetTxOutAddress(txoutIdx)
+		if err != nil {
+			return err
+		}
+
+		recipientAddr := ""
+		if len(addrs) > 0 {
+			recipientAddr = addrs[0].EncodeAddress()
+		}
+
+		txoutData, err := tx.GetNonOPDataFromTxOut(txoutIdx)
+		if err != nil {
+			return err
+		}
+
+		txoutDataHex := hex.EncodeToString(txoutData)
+
+		csvFile.WriteString(fmt.Sprintf("%v,%v,%v,%v,%v\n", tx.BlockHash.String(), recipientAddr, txHash, txoutIdx, txoutDataHex), true)
+	}
+
+	return nil
 }
