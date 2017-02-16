@@ -154,7 +154,7 @@ Note: you should probably run the `builddb transactions` command for the entire 
 This is helpful if you're searching for known file headers or strings inside of transaction scripts.
 
 ```sh
-$ local-blockchain-parser binary-grep 73706f6f6b7468656475636b73 --startBlock 0 --endBlock 773
+$ local-blockchain-parser binary-grep 73706f6f6b7468656475636b73 --block 771 --block 772 --block 773
 ```
 
 The command above searches for the string "spooktheducks".  You should find it in blk00772.dat.
