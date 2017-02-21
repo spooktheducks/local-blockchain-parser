@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/WikiLeaksFreedomForce/local-blockchain-parser",
+	"ImportPath": "github.com/spooktheducks/local-blockchain-parser",
 	"GoVersion": "go1.7",
 	"GodepVersion": "v74",
 	"Deps": [

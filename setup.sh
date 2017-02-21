@@ -2,11 +2,11 @@
 
 set -e
 
-PROJECT_NAMESPACE="${GOPATH}/src/github.com/WikiLeaksFreedomForce/"
+PROJECT_NAMESPACE="${GOPATH}/src/github.com/spooktheducks/"
 PROJECT="local-blockchain-parser"
 
 # You should be using ssh, update your origin after cloning
-REPOSITORY="https://github.com/WikiLeaksFreedomForce/local-blockchain-parser.git"
+REPOSITORY="https://github.com/spooktheducks/local-blockchain-parser.git"
 
 if [ -z ${GOPATH+x} ]
 	then
