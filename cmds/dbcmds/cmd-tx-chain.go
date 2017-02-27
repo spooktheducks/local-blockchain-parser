@@ -80,6 +80,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 			&txhashoutput.OpReturn{OutDir: cmd.outDir, Filename: "transactions-opreturn.txt"},
 			&txhashoutput.NonOp{OutDir: cmd.outDir, Filename: "transactions-nonop.txt"},
 			&txhashoutput.InputScript{OutDir: cmd.outDir, Filename: "transactions-inputscripts.txt"},
+			&txhashoutput.InputScriptNonOP{OutDir: cmd.outDir, Filename: "transactions-inputscripts-nonop.txt"},
 		},
 		TxDataSources: []scanner.ITxDataSource{
 			&txdatasource.InputScript{},
