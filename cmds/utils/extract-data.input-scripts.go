@@ -4,6 +4,32 @@ import (
 	"encoding/binary"
 )
 
+func GetFirstPushdataBytes(scriptBytes []byte) ([]byte, error) {
+	for i := 0; i < len(scriptBytes); {
+		op := scriptBytes[i]
+
+		if op >= OP_DATA_1 && op <= OP_DATA_75 {
+			i += opcodeArray[op].length
+		} else if op == OP_PUSHDATA1 {
+			length := uint8(scriptBytes[i+1])
+			return scriptBytes[i+2 : i+2+int(length)], nil
+
+		} else if op == OP_PUSHDATA2 {
+			length := binary.LittleEndian.Uint16(scriptBytes[i+1:])
+			return scriptBytes[i+3 : i+3+int(length)], nil
+
+		} else if op == OP_PUSHDATA4 {
+			length := binary.LittleEndian.Uint32(scriptBytes[i+1:])
+			return scriptBytes[i+5 : i+5+int(length)], nil
+
+		} else {
+			i += 1
+		}
+	}
+
+	return nil, nil
+}
+
 func GetPushdataBytesFromInputScript(scriptBytes []byte) ([]byte, error) {
 	outData := []byte{}
 	for i := 0; i < len(scriptBytes); {

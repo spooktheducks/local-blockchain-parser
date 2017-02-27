@@ -86,6 +86,7 @@ func (cmd *TxChainCommand) RunCommand() error {
 			&txdatasource.InputScript{},
 			&txdatasource.InputScriptNonOP{},
 			&txdatasource.InputScriptPushdata{},
+			&txdatasource.InputScriptFirstPushdata{},
 			&txdatasource.InputScriptsConcat{},
 			&txdatasource.OutputScript{},
 			&txdatasource.OutputScript{OrderByValue: true},
