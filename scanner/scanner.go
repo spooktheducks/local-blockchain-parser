@@ -37,10 +37,12 @@ type (
 	ITxDataSourceResult interface {
 		SourceName() string
 		RawData() []byte
+		InOut() string
+		Index() int
 	}
 
 	ITxDataSourceOutput interface {
-		PrintOutput(chainhash.Hash, ITxDataSource, []ITxDataSourceResult) error
+		PrintOutput(*Tx, ITxDataSource, []ITxDataSourceResult) error
 		Close() error
 	}
 
@@ -115,7 +117,7 @@ func (s *Scanner) Run() error {
 			}
 
 			for _, out := range s.TxDataSourceOutputs {
-				err := out.PrintOutput(txHash, txDataSource, dataResults)
+				err := out.PrintOutput(tx, txDataSource, dataResults)
 				if err != nil {
 					return err
 				}

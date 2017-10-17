@@ -35,3 +35,11 @@ func (r OutputScriptsConcatResult) SourceName() string {
 func (r OutputScriptsConcatResult) RawData() []byte {
 	return r
 }
+
+func (r OutputScriptsConcatResult) InOut() string {
+	return "out"
+}
+
+func (r OutputScriptsConcatResult) Index() int {
+	return -1
+}

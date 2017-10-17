@@ -51,8 +51,8 @@ func (cmd *DumpTxFeesCommand) RunCommand() error {
 
 	// start a goroutine for each .dat file being parsed, limited to 5 at a time
 	chDones := []chan bool{}
-	procLimiter := make(chan bool, 5)
-	for i := 0; i < 5; i++ {
+	procLimiter := make(chan bool, 1)
+	for i := 0; i < 1; i++ {
 		procLimiter <- true
 	}
 

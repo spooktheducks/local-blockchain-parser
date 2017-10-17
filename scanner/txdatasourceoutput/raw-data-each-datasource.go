@@ -5,21 +5,20 @@ import (
 	"io/ioutil"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-
-	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
+	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 	"github.com/spooktheducks/local-blockchain-parser/scanner"
 )
 
 type RawDataEachDataSource struct {
 	OutDir   string
-	outFiles map[string]*utils.ConditionalFile
 }
 
 // ensure RawDataEachDataSource conforms to ITxDataSourceOutput
 var _ scanner.ITxDataSourceOutput = &RawDataEachDataSource{}
 
-func (o *RawDataEachDataSource) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
+func (o *RawDataEachDataSource) PrintOutput(tx *Tx, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
+	txHash := tx.Hash()
+
 	for _, result := range dataResults {
 		if len(result.RawData()) == 0 {
 			continue

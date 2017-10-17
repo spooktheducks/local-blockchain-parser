@@ -44,17 +44,21 @@ func NewForwardChain(db *BlockDB, startHash chainhash.Hash, limit uint) TxHashSo
 			tx, err := db.GetTx(currentTxHash)
 			if err != nil {
 				// @@TODO
-				panic(err)
+				// panic(err)
+				break
 			}
+			// fmt.Println(currentTxHash.String())
 
 			// if !tx.HasSuspiciousOutputValues() {
 			// 	fmt.Println("no suspicious output values, stopping")
 			// 	break
 			// }
 			ch <- currentTxHash
+			// fmt.Println("sending tx", currentTxHash.String())
 
 			key := SpentTxOutKey{TxHash: *tx.Hash(), TxOutIndex: uint32(tx.FindMaxValueTxOut())}
 			spentTxOut, err := db.GetSpentTxOut(key)
+			// fmt.Printf("spent txout ~> %+v\n", spentTxOut)
 			if err != nil {
 				fmt.Println("err", err)
 				// @@TODO
@@ -93,7 +97,8 @@ func NewBackwardChain(db *BlockDB, startHash chainhash.Hash, limit uint) TxHashS
 			tx, err := db.GetTx(currentTxHash)
 			if err != nil {
 				// @@TODO
-				panic(err)
+				// panic(err)
+				break
 			}
 
 			// if tx.HasSuspiciousOutputValues() {

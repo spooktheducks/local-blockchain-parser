@@ -1,7 +1,6 @@
 package txhashoutput
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -29,7 +28,7 @@ func (o *HashOnly) Close() error {
 	defer f.Close()
 
 	for _, txHash := range o.data {
-		f.WriteString(fmt.Sprintf("%s\n", txHash.String()))
+		f.WriteString(txHash.String() + "\n")
 	}
 
 	return nil

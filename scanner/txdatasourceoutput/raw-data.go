@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/btcsuite/btcd/chaincfg/chainhash"
-
+	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
 	"github.com/spooktheducks/local-blockchain-parser/scanner"
 )
@@ -18,7 +17,7 @@ type RawData struct {
 // ensure RawData conforms to ITxDataSourceOutput
 var _ scanner.ITxDataSourceOutput = &RawData{}
 
-func (o *RawData) PrintOutput(txHash chainhash.Hash, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
+func (o *RawData) PrintOutput(tx *Tx, txDataSource scanner.ITxDataSource, dataResults []scanner.ITxDataSourceResult) error {
 	outFile, exists := o.outFiles[txDataSource.Name()]
 	if !exists {
 		if o.outFiles == nil {

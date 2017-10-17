@@ -45,3 +45,11 @@ func (r OutputScriptOpReturnResult) SourceName() string {
 func (r OutputScriptOpReturnResult) RawData() []byte {
 	return r.rawData
 }
+
+func (r OutputScriptOpReturnResult) InOut() string {
+	return "out"
+}
+
+func (r OutputScriptOpReturnResult) Index() int {
+	return r.index
+}

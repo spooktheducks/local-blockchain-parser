@@ -22,10 +22,17 @@ type Tx struct {
 
 	BlockHash    chainhash.Hash
 	IndexInBlock uint64
+
+	fee Satoshis
+	calculatedFee bool
 }
 
 func (tx *Tx) DATFilename() string {
 	return fmt.Sprintf("blk%05d.dat", tx.DATFileIdx)
+}
+
+func (tx *Tx) GetBlock() (*Block, error) {
+	return tx.db.GetBlock(tx.BlockHash)
 }
 
 func (tx *Tx) GetOPReturnDataFromTxOut(txoutIdx int) ([]byte, error) {
@@ -181,13 +188,17 @@ func (tx *Tx) HasSuspiciousOutputValues() bool {
 	return false
 }
 
-func (tx *Tx) Fee() (BTC, error) {
+func (tx *Tx) Fee() (Satoshis, error) {
+	if tx.calculatedFee {
+		return tx.fee, nil
+	}
+
 	var outValues int64
 	for _, txout := range tx.MsgTx().TxOut {
 		outValues += txout.Value
 	}
 	var inValues int64
-	for _, txin := range tx.MsgTx().TxIn {
+	for txinIdx, txin := range tx.MsgTx().TxIn {
 		// @@TODO: handle coinbase correctly
 		if txin.PreviousOutPoint.Hash == emptyHash {
 			continue
@@ -195,12 +206,16 @@ func (tx *Tx) Fee() (BTC, error) {
 
 		prevTx, err := tx.db.GetTx(txin.PreviousOutPoint.Hash)
 		if err != nil {
+			fmt.Printf("Failed to GetTx( %v ) while calculating fee for %v (txin %d)\n", txin.PreviousOutPoint.Hash.String(), tx.Hash().String(), txinIdx)
 			return 0, err
 		}
 		inValues += prevTx.MsgTx().TxOut[txin.PreviousOutPoint.Index].Value
 	}
 
-	return Satoshis(inValues - outValues).ToBTC(), nil
+	tx.fee = Satoshis(inValues - outValues)
+	tx.calculatedFee = true
+
+	return tx.fee, nil
 }
 
 func (tx *Tx) GetSpendingTx(txoutIdx int) (*Tx, error) {

@@ -2,23 +2,24 @@ package dbcmds
 
 import (
 	"fmt"
-	"io/ioutil"
+	// "io/ioutil"
 	"os"
 	"path/filepath"
 	// "sort"
 	"strings"
 	"time"
 
-	// "github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/chaincfg/chainhash"
+	"github.com/btcsuite/btcd/txscript"
 
 	. "github.com/spooktheducks/local-blockchain-parser/blockdb"
 	"github.com/spooktheducks/local-blockchain-parser/cmds/utils"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner/detector"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner/txdatasource"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner/txdatasourceoutput"
-	// "github.com/spooktheducks/local-blockchain-parser/scanner/txhashsource"
+	"github.com/spooktheducks/local-blockchain-parser/scanner"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/detector"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasource"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasourceoutput"
+	"github.com/spooktheducks/local-blockchain-parser/scanner/txhashsource"
 )
 
 type TxInfoCommand struct {
@@ -130,13 +131,23 @@ func (cmd *TxInfoCommand) RunCommand() error {
 
 	fmt.Printf("transaction %v\n", tx.Hash().String())
 	fmt.Printf("  - Block %v (%v) (%v)\n", tx.BlockHash, tx.DATFilename(), time.Unix(tx.BlockTimestamp, 0))
+	fmt.Printf("  - Block timestamp: %v\n", tx.BlockTimestamp)
 	fmt.Printf("  - Lock time: %v\n", tx.MsgTx().LockTime)
+	fmt.Printf("  - Size: %v bytes\n", tx.MsgTx().SerializeSize())
+	fmt.Printf("  - # inputs: %v\n", len(tx.MsgTx().TxIn))
+	fmt.Printf("  - # outputs: %v\n", len(tx.MsgTx().TxOut))
 
 	fee, err := tx.Fee()
 	if err != nil {
-		return err
+		// return err
+	} else {
+		fmt.Printf("  - Fee: %v Satoshis\n", fee)
 	}
-	fmt.Printf("  - Fee: %v BTC\n", fee)
+
+	for i, txout := range tx.MsgTx().TxOut {
+		class := txscript.GetScriptClass(txout.PkScript)
+		fmt.Printf("  - TxOut %d: %v\n", i, class)
+	}
 
 	// txoutAddrs, err := utils.GetTxOutAddresses(tx)
 	// if err != nil {
@@ -170,43 +181,50 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		return err
 	}
 
-	// s := &scanner.Scanner{
-	// 	DB:           db,
-	// 	TxHashSource: txhashsource.NewListTxHashSource([]chainhash.Hash{*tx.Hash()}),
-	// 	TxDataSources: []scanner.ITxDataSource{
-	// 		&txdatasource.InputScript{},
-	// 		// &txdatasource.InputScriptsConcat{},
-	// 		&txdatasource.OutputScript{},
-	// 		// &txdatasource.OutputScriptsConcat{},
-	// 		&txdatasource.OutputScriptsSatoshi{},
-	// 		&txdatasource.OutputScriptOpReturn{},
-	// 	},
-	// 	TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
-	// 		&txdatasourceoutput.RawData{OutDir: cmd.outDir},
-	// 		&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
-	// 	},
-	// 	Detectors: []scanner.IDetector{
-	// 		// &detector.PGPPackets{},
-	// 		// &detector.AESKeys{},
-	// 		&detector.MagicBytes{},
-	// 		// &detector.Plaintext{},
-	// 	},
-	// 	DetectorOutputs: []scanner.IDetectorOutput{
-	// 		&detectoroutput.Console{Prefix: "  - "},
-	// 		&detectoroutput.RawData{OutDir: cmd.outDir},
-	// 		&detectoroutput.CSV{OutDir: cmd.outDir},
-	// 		&detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
-	// 	},
-	// }
+	s := &scanner.Scanner{
+		DB:           db,
+		TxHashSource: txhashsource.NewListTxHashSource([]chainhash.Hash{*tx.Hash()}),
+		TxHashOutputs: []scanner.ITxHashOutput{},
+		TxDataSources: []scanner.ITxDataSource{
+			// &txdatasource.InputScript{},
+			&txdatasource.InputScriptNonOP{},
+			&txdatasource.InputScriptPushdata{},
+			&txdatasource.InputScriptFirstPushdata{},
+			// &txdatasource.InputScriptsConcat{},
+			// &txdatasource.OutputScript{},
+			&txdatasource.OutputScript{OrderByValue: true},
+			&txdatasource.OutputScript{SkipMaxValueTxOut: true},
+			&txdatasource.OutputScript{SkipMaxValueTxOut: true, OrderByValue: true},
+			&txdatasource.OutputScriptsSatoshi{},
+			&txdatasource.OutputScriptOpReturn{},
+			// &txdatasource.OutputScriptsConcat{},
+		},
+		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
+			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
+			&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
+		},
+		Detectors: []scanner.IDetector{
+			// &detector.PGPPackets{},
+			&detector.AESKeys{},
+			&detector.MagicBytes{},
+			// &detector.Plaintext{},
+		},
+		DetectorOutputs: []scanner.IDetectorOutput{
+			&detectoroutput.Console{Prefix: "  - "},
+			&detectoroutput.RawData{OutDir: cmd.outDir},
+			&detectoroutput.CSV{OutDir: cmd.outDir},
+			// &detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
+		},
+	}
 
-	// err = s.Run()
-	// if err != nil {
-	// 	return err
-	// }
+	err = s.Run()
+	if err != nil {
+		return err
+	}
 
-	// return s.Close()
+	return s.Close()
 
-	err = cmd.findFileHeaders(tx)
+	/*err = cmd.findFileHeaders(tx)
 	if err != nil {
 		return err
 	}
@@ -312,7 +330,7 @@ func (cmd *TxInfoCommand) RunCommand() error {
 		}
 	}
 
-	return nil
+	return nil*/
 }
 
 func (cmd *TxInfoCommand) printOutputsSpentUnspent(db *BlockDB, tx *Tx) error {

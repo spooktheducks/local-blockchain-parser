@@ -337,6 +337,8 @@ func (db *BlockDB) GetBlockIndexRow(blockHash chainhash.Hash) (BlockIndexRow, er
 	row, err := db.getBlockIndexRowFromDB(blockHash)
 	if err == nil {
 		return row, nil
+	} else {
+		return row, err
 	}
 
 	switch err.(type) {
@@ -441,11 +443,11 @@ func (db *BlockDB) GetTxIndexRow(txHash chainhash.Hash) (TxIndexRow, error) {
 		return TxIndexRow{}, err
 	}
 
-	row, err = db.getTxIndexRowFromBlockchainInfoAPI(txHash)
-	if err == nil {
-		err = db.putTxIndexRows([]chainhash.Hash{txHash}, []TxIndexRow{row})
-		return row, err
-	}
+	// row, err = db.getTxIndexRowFromBlockchainInfoAPI(txHash)
+	// if err == nil {
+	// 	err = db.putTxIndexRows([]chainhash.Hash{txHash}, []TxIndexRow{row})
+	// 	return row, err
+	// }
 	fmt.Printf("error: tx index row %v not found\n", txHash.String())
 	return row, err
 }
@@ -480,36 +482,36 @@ func (db *BlockDB) getTxIndexRowFromDB(txHash chainhash.Hash) (TxIndexRow, error
 	return txRow, nil
 }
 
-func (db *BlockDB) getTxIndexRowFromBlockchainInfoAPI(txHash chainhash.Hash) (TxIndexRow, error) {
-	api := &BlockchainInfoAPI{}
+// func (db *BlockDB) getTxIndexRowFromBlockchainInfoAPI(txHash chainhash.Hash) (TxIndexRow, error) {
+// 	api := &BlockchainInfoAPI{}
 
-	blockHash, err := api.GetBlockHashForTx(txHash)
-	if err != nil {
-		return TxIndexRow{}, err
-	}
+// 	blockHash, err := api.GetBlockHashForTx(txHash)
+// 	if err != nil {
+// 		return TxIndexRow{}, err
+// 	}
 
-	blockRow, err := db.GetBlockIndexRow(blockHash)
-	if err != nil {
-		return TxIndexRow{}, err
-	}
+// 	blockRow, err := db.GetBlockIndexRow(blockHash)
+// 	if err != nil {
+// 		return TxIndexRow{}, err
+// 	}
 
-	bl, err := db.LoadBlockFromDAT(blockRow.DATFileIdx, blockRow.IndexInDATFile)
-	if err != nil {
-		return TxIndexRow{}, err
-	}
+// 	bl, err := db.LoadBlockFromDAT(blockRow.DATFileIdx, blockRow.IndexInDATFile)
+// 	if err != nil {
+// 		return TxIndexRow{}, err
+// 	}
 
-	for txIdx, tx := range bl.Transactions() {
-		if txHash == *tx.Hash() {
-			row := TxIndexRow{
-				BlockHash:    blockHash,
-				IndexInBlock: uint64(txIdx),
-			}
-			return row, nil
-		}
-	}
+// 	for txIdx, tx := range bl.Transactions() {
+// 		if txHash == *tx.Hash() {
+// 			row := TxIndexRow{
+// 				BlockHash:    blockHash,
+// 				IndexInBlock: uint64(txIdx),
+// 			}
+// 			return row, nil
+// 		}
+// 	}
 
-	return TxIndexRow{}, fmt.Errorf("BlockDB.getTxIndexRowFromBlockchainInfoAPI: could not find transaction %v", txHash.String())
-}
+// 	return TxIndexRow{}, fmt.Errorf("BlockDB.getTxIndexRowFromBlockchainInfoAPI: could not find transaction %v", txHash.String())
+// }
 
 func (db *BlockDB) GetTx(txHash chainhash.Hash) (*Tx, error) {
 	txRow, err := db.GetTxIndexRow(txHash)

@@ -67,7 +67,7 @@ func GetNonOPBytesFromOutputScript(scriptData []byte) ([]byte, error) {
 			continue
 		}
 
-		if tok[:3] != "OP_" && len(tok) >= 40 {
+		if tok[:3] != "OP_" /*&& len(tok) >= 40*/ {
 			decoded, err := hex.DecodeString(tok)
 			if err != nil {
 				return nil, err

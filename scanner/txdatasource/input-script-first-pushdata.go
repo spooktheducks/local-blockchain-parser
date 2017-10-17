@@ -39,9 +39,17 @@ func (ds *InputScriptFirstPushdata) GetData(tx *Tx) ([]scanner.ITxDataSourceResu
 }
 
 func (r InputScriptFirstPushdataResult) SourceName() string {
-	return fmt.Sprintf("txin-script-pushdata-%d", r.index)
+	return fmt.Sprintf("txin-script-first-pushdata-%d", r.index)
 }
 
 func (r InputScriptFirstPushdataResult) RawData() []byte {
 	return r.rawData
+}
+
+func (r InputScriptFirstPushdataResult) InOut() string {
+	return "in"
+}
+
+func (r InputScriptFirstPushdataResult) Index() int {
+	return r.index
 }

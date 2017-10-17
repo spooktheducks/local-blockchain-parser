@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 
 	"github.com/spooktheducks/local-blockchain-parser/scanner"
-	"github.com/spooktheducks/local-blockchain-parser/scanner/detector"
-	"github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/detector"
+	// "github.com/spooktheducks/local-blockchain-parser/scanner/detectoroutput"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasource"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txdatasourceoutput"
 	"github.com/spooktheducks/local-blockchain-parser/scanner/txhashoutput"
@@ -87,30 +87,31 @@ func (cmd *TxChainCommand) RunCommand() error {
 			&txdatasource.InputScriptNonOP{},
 			&txdatasource.InputScriptPushdata{},
 			&txdatasource.InputScriptFirstPushdata{},
-			&txdatasource.InputScriptsConcat{},
+			// &txdatasource.InputScriptsConcat{},
 			&txdatasource.OutputScript{},
 			&txdatasource.OutputScript{OrderByValue: true},
 			&txdatasource.OutputScript{SkipMaxValueTxOut: true},
 			&txdatasource.OutputScript{SkipMaxValueTxOut: true, OrderByValue: true},
 			&txdatasource.OutputScriptsSatoshi{},
 			&txdatasource.OutputScriptOpReturn{},
-			&txdatasource.OutputScriptsConcat{},
+			// &txdatasource.OutputScriptsConcat{},
 		},
 		TxDataSourceOutputs: []scanner.ITxDataSourceOutput{
-			&txdatasourceoutput.RawData{OutDir: cmd.outDir},
-			&txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
+			// &txdatasourceoutput.RawData{OutDir: cmd.outDir},
+			// &txdatasourceoutput.RawDataEachDataSource{OutDir: cmd.outDir},
+			&txdatasourceoutput.RawDataIncremental{OutDir: cmd.outDir},
 		},
 		Detectors: []scanner.IDetector{
 			// &detector.PGPPackets{},
-			&detector.AESKeys{},
-			&detector.MagicBytes{},
+			// &detector.AESKeys{},
+			// &detector.MagicBytes{},
 			// &detector.Plaintext{},
 		},
 		DetectorOutputs: []scanner.IDetectorOutput{
-			&detectoroutput.Console{Prefix: "  - "},
-			&detectoroutput.RawData{OutDir: cmd.outDir},
-			&detectoroutput.CSV{OutDir: cmd.outDir},
-			&detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
+			// &detectoroutput.Console{Prefix: "  - "},
+			// &detectoroutput.RawData{OutDir: cmd.outDir},
+			// &detectoroutput.CSV{OutDir: cmd.outDir},
+			// &detectoroutput.CSVTxAnalysis{OutDir: cmd.outDir},
 		},
 	}
 

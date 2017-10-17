@@ -38,26 +38,23 @@ func (ds *OutputScript) Name() string {
 		return "txout-script"
 	}
 }
-
 func (ds *OutputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
-	txouts := tx.MsgTx().TxOut
+	_txouts := tx.MsgTx().TxOut
+	txouts := make([]wrappedTxOut, len(_txouts))
+
+	for i := range _txouts {
+		txouts[i] = wrappedTxOut{TxOut: _txouts[i], index: i}
+	}
 
 	skipTxoutIdx := tx.FindMaxValueTxOut()
-	if ds.OrderByValue {
-		txouts = ds.sortTxOuts(txouts)
 
-		var maxValue int64
-		for txoutIdx, txout := range txouts {
-			if txout.Value > maxValue {
-				maxValue = txout.Value
-				skipTxoutIdx = txoutIdx
-			}
-		}
+	if ds.OrderByValue {
+		sort.Sort(valueSortedTxOuts(txouts))
 	}
 
 	results := []scanner.ITxDataSourceResult{}
-	for i, txout := range txouts {
-		if ds.SkipMaxValueTxOut && i == skipTxoutIdx {
+	for _, txout := range txouts {
+		if ds.SkipMaxValueTxOut && txout.index == skipTxoutIdx {
 			continue
 		}
 		bs, err := utils.GetNonOPBytesFromOutputScript(txout.PkScript)
@@ -65,20 +62,20 @@ func (ds *OutputScript) GetData(tx *Tx) ([]scanner.ITxDataSourceResult, error) {
 			continue
 		}
 
-		results = append(results, OutputScriptResult{rawData: bs, index: i})
+		results = append(results, OutputScriptResult{rawData: bs, index: txout.index})
 	}
 
 	return results, nil
 }
 
-func (ds *OutputScript) sortTxOuts(txouts []*wire.TxOut) []*wire.TxOut {
-	// this copy is absolutely necessary since sort.Sort is in-place.  otherwise, later
-	// ITxDataSources will receive shuffled data.
-	txoutsCopy := make([]*wire.TxOut, len(txouts))
-	copy(txoutsCopy, txouts)
-	sort.Sort(sortableTxOuts(txoutsCopy))
-	return txoutsCopy
-}
+// func (ds *OutputScript) sortTxOutsByValue(txouts []wrappedTxOut) []*wire.TxOut {
+// 	// this copy is absolutely necessary since sort.Sort is in-place.  otherwise, later
+// 	// ITxDataSources will receive shuffled data.
+// 	// txoutsCopy := make([]*wire.TxOut, len(txouts))
+// 	// copy(txoutsCopy, txouts)
+// 	sort.Sort(valueSortedTxOuts(txoutsCopy))
+// 	return txoutsCopy
+// }
 
 func (r OutputScriptResult) SourceName() string {
 	return fmt.Sprintf("txout-script-%d", r.index)
@@ -88,16 +85,29 @@ func (r OutputScriptResult) RawData() []byte {
 	return r.rawData
 }
 
-type sortableTxOuts []*wire.TxOut
+func (r OutputScriptResult) InOut() string {
+	return "out"
+}
 
-func (sto sortableTxOuts) Len() int {
+func (r OutputScriptResult) Index() int {
+	return r.index
+}
+
+type wrappedTxOut struct {
+	*wire.TxOut
+	index int
+}
+
+type valueSortedTxOuts []wrappedTxOut
+
+func (sto valueSortedTxOuts) Len() int {
 	return len(sto)
 }
 
-func (sto sortableTxOuts) Less(i, j int) bool {
+func (sto valueSortedTxOuts) Less(i, j int) bool {
 	return sto[i].Value < sto[j].Value
 }
 
-func (sto sortableTxOuts) Swap(i, j int) {
+func (sto valueSortedTxOuts) Swap(i, j int) {
 	sto[i], sto[j] = sto[j], sto[i]
 }
